@@ -1,0 +1,2286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔥</text></svg>">
+<title>DELAJ — Live, Post, Connect</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:#000;color:#fff;overflow-x:hidden}
+button{font-family:inherit}input,textarea{font-family:inherit;outline:none}
+.topbar{height:56px;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid #1a1a1a;display:flex;align-items:center;justify-content:space-between;padding:0 14px;position:fixed;top:0;left:0;right:0;z-index:1000}
+.logo{font-weight:900;font-size:20px;letter-spacing:-.5px;cursor:pointer}
+.logo .fire{color:#ff2d55}
+.logo .d{color:#00ff88}
+.icon-btn{background:#1a1a1a;border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;position:relative}
+.icon-btn:hover{background:#252525}
+.icon-btn .badge{position:absolute;top:-2px;right:-2px;background:#ff2d55;color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:9px;display:none;align-items:center;justify-content:center;padding:0 4px;border:2px solid #000}
+
+.app{padding-top:56px;padding-bottom:72px;display:flex;min-height:100vh}
+#map{width:100%;height:50vh}@media(min-width:900px){#map{height:calc(100vh - 128px)}}
+.map-side{flex:1;background:#0a0a0a;display:none}.map-side.active{display:block}
+.feed-side{flex:1;max-width:560px;margin:0 auto;background:#000;width:100%;display:block}
+
+.search-wrap{padding:10px 12px 4px;background:#000;position:sticky;top:56px;z-index:20}
+.search-bar{display:flex;align-items:center;gap:8px;background:#141414;border:1px solid #222;border-radius:24px;padding:0 14px}
+.search-bar:focus-within{border-color:#00ff88}
+.search-bar input{flex:1;background:none;border:none;color:#fff;padding:11px 0;font-size:14px}
+.search-bar input::placeholder{color:#555}
+.search-clear{background:none;border:none;color:#888;font-size:18px;cursor:pointer;padding:0 4px;display:none}
+.search-clear.show{display:block}
+.filter-bar{display:flex;gap:8px;padding:10px 12px;overflow-x:auto;scrollbar-width:none}
+.filter-bar::-webkit-scrollbar{display:none}
+.filter-btn{background:#1a1a1a;border:1px solid #222;color:#fff;padding:7px 15px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;cursor:pointer}
+.filter-btn.active{background:#00ff88;color:#000;border-color:#00ff88}
+
+.post-card{background:#0d0d0d;margin:0 8px 12px;border:1px solid #1a1a1a;border-radius:18px;overflow:hidden}
+.post-card.highlighted{outline:2px solid #00ff88;outline-offset:2px}
+.post-head{display:flex;align-items:center;gap:10px;padding:12px 14px 8px}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#00ff88,#00b4ff);color:#000;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:14px;cursor:pointer;flex:0 0 auto;border:2px solid #1a1a1a;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover}
+.avatar.lg{width:84px;height:84px;font-size:32px;border-width:3px}
+.avatar.sm{width:28px;height:28px;font-size:11px;border-width:2px}
+.post-user{flex:1;min-width:0}
+.post-user .name{font-weight:700;font-size:14px;cursor:pointer}
+.post-user .meta{font-size:11px;color:#666;margin-top:1px}
+.post-menu{background:none;border:none;color:#666;font-size:18px;cursor:pointer;padding:4px 8px;border-radius:50%}
+.post-menu:hover{background:#1a1a1a;color:#fff}
+.post-media{background:#000;display:flex;align-items:center;justify-content:center;position:relative;min-height:40px;cursor:pointer}
+.post-media video,.post-media img{width:100%;max-height:75vh;object-fit:contain;background:#000;display:block}
+.post-text-only{padding:20px 16px;font-size:15px;line-height:1.5;word-break:break-word}
+.post-caption{padding:10px 14px 0;font-size:14px;line-height:1.45;word-break:break-word}
+.pin-card{border-color:gold!important;box-shadow:0 0 14px rgba(255,215,0,.2)}
+.pinned-tag{background:gold;color:#000;font-size:10px;font-weight:900;padding:4px 9px;border-radius:11px;position:absolute;top:10px;left:10px;z-index:2}
+.post-info{padding:10px 14px 12px}
+.loc-row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:2px}
+.loc-pill{background:#00ff88;color:#000;font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%;cursor:pointer}
+.time-views{font-size:11px;color:#777;white-space:nowrap}
+.action-row{display:flex;gap:6px;margin-top:10px;border-top:1px solid #1a1a1a;padding-top:10px;align-items:center;flex-wrap:wrap}
+.act{background:none;border:none;color:#aaa;font-size:13px;cursor:pointer;display:flex;gap:5px;align-items:center;padding:6px 10px;border-radius:10px;font-weight:600}
+.act:hover{background:#1a1a1a;color:#fff}
+.act.liked{color:#ff2d55}
+.act.saved{color:#ffcc00}
+.act.pin-btn{margin-left:auto;background:#00ff88;color:#000;padding:7px 14px;border-radius:20px;font-weight:800}
+.pinned-label{margin-left:auto;color:gold;font-size:11px;font-weight:700}
+.heart-icon{display:inline-block}
+.act.liked .heart-icon{animation:heartPop .45s cubic-bezier(.175,.885,.32,1.275)}
+@keyframes heartPop{0%{transform:scale(1)}30%{transform:scale(1.4)}50%{transform:scale(.9)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+.heart-burst{position:absolute;pointer-events:none;font-size:64px;opacity:0;z-index:10;animation:heartBurst 1s ease-out forwards}
+@keyframes heartBurst{0%{opacity:1;transform:scale(.5)}15%{opacity:1;transform:scale(1.2)}30%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(1.6) translateY(-30px)}}
+
+.comments-section{max-height:0;overflow:hidden;transition:max-height .35s ease;border-top:0 solid #1a1a1a}
+.comments-section.open{max-height:800px;border-top:1px solid #1a1a1a;overflow-y:auto}
+.comments-inner{padding:12px 14px}
+.comment{display:flex;gap:8px;margin-bottom:12px;align-items:flex-start}
+.comment.reply{margin-left:28px;margin-top:6px}
+.comment-body{flex:1;min-width:0}
+.comment-body .cname{font-size:12px;font-weight:700;color:#ddd;cursor:pointer}
+.comment-body .ctext{font-size:13px;line-height:1.4;color:#ccc;margin-top:2px;word-break:break-word}
+.comment-body .cmeta{font-size:10px;color:#666;margin-top:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cmeta-btn{background:none;border:none;color:#666;font-size:11px;cursor:pointer;padding:2px 4px;font-weight:600}
+.cmeta-btn:hover{color:#00ff88}
+.comment-del{color:#555!important}
+.comment-del:hover{color:#ff2d55!important}
+.reply-indicator{display:flex;align-items:center;gap:6px;padding:8px 14px;background:#0f0f0f;border-top:1px solid #1a1a1a;font-size:11px;color:#888}
+.reply-indicator b{color:#00ff88}
+.reply-cancel{background:none;border:none;color:#888;cursor:pointer;margin-left:auto;font-size:14px}
+.comment-input-row{display:flex;gap:8px;padding:10px 14px;border-top:1px solid #1a1a1a;align-items:center;background:#0d0d0d}
+.comment-input-row input{flex:1;background:#141414;border:1px solid #222;color:#fff;padding:10px 14px;border-radius:22px;font-size:13px}
+.comment-input-row input:focus{border-color:#00ff88}
+.comment-send{background:#00ff88;color:#000;border:none;width:36px;height:36px;border-radius:50%;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px}
+.comments-empty{text-align:center;padding:16px;color:#555;font-size:12px}
+
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:62px;background:rgba(0,0,0,.95);backdrop-filter:blur(12px);border-top:1px solid #1a1a1a;display:flex;justify-content:space-around;align-items:center;z-index:1000;padding-bottom:env(safe-area-inset-bottom)}
+.nav-item{background:none;border:none;color:#666;font-size:10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 12px;border-radius:12px;font-weight:600;position:relative}
+.nav-item.active{color:#fff}
+.nav-item .nav-badge{position:absolute;top:0;right:6px;background:#ff2d55;color:#fff;font-size:9px;font-weight:800;min-width:15px;height:15px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 3px}
+.nav-center{background:#fff;color:#000;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:300}
+
+.create-box{position:fixed;bottom:62px;left:50%;transform:translateX(-50%) translateY(20px);width:100%;max-width:560px;background:#0d0d0d;border-top:1px solid #222;padding:14px;z-index:999;display:none;opacity:0;transition:all .25s ease;max-height:calc(100vh - 130px);overflow-y:auto}
+.create-box.show{display:block;opacity:1;transform:translateX(-50%) translateY(0)}
+.create-box textarea,.create-box input[type=text]{width:100%;background:#141414;border:1px solid #222;color:#fff;padding:12px 14px;border-radius:12px;font-size:14px;resize:none}
+.create-box textarea:focus,.create-box input[type=text]:focus{border-color:#00ff88}
+.media-btns{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.media-label{background:#1a1a1a;padding:8px 14px;border-radius:20px;font-size:12px;cursor:pointer;font-weight:600}
+.preview{width:100%;border-radius:12px;margin-top:10px;max-height:220px;object-fit:cover;display:none}
+.create-actions{display:flex;justify-content:space-between;margin-top:12px;align-items:center}
+.btn-cancel{background:none;border:none;color:#888;cursor:pointer;font-size:13px;padding:8px}
+.btn-post{background:#00ff88;border:none;color:#000;padding:11px 26px;border-radius:24px;font-weight:800;cursor:pointer;font-size:14px}
+.btn-post:disabled{opacity:.5;cursor:not-allowed}
+
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(4px);z-index:3000;display:none;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+.modal-backdrop.show{display:flex}
+.modal-box{background:#0d0d0d;border:1px solid #1e1e1e;padding:22px;border-radius:22px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;animation:modalIn .22s ease}
+@keyframes modalIn{from{transform:scale(.95);opacity:0}to{transform:scale(1);opacity:1}}
+.modal-box h3{font-weight:900;font-size:19px}
+.modal-sub{color:#666;font-size:12px;margin-top:4px;margin-bottom:4px}
+
+.authTabs{display:flex;background:#141414;border-radius:14px;padding:4px;gap:4px;margin-bottom:16px}
+.authTab{flex:1;background:none;border:none;color:#888;padding:10px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer}
+.authTab.active{background:#00ff88;color:#000}
+.authInput{width:100%;padding:13px 14px;background:#141414;border:1px solid #222;color:#fff;border-radius:12px;margin-top:10px;font-size:14px}
+.authInput:focus{border-color:#00ff88}
+.authErr{display:none;background:#2a0d12;border:1px solid #ff2d55;color:#ff8fa3;font-size:12px;padding:11px;border-radius:11px;margin-top:12px;line-height:1.45}
+.btn-primary{background:#fff;color:#000;border:none;padding:13px;border-radius:24px;font-weight:800;width:100%;cursor:pointer;font-size:14px;margin-top:14px}
+.btn-primary:disabled{opacity:.5}
+.btn-secondary{background:#1a1a1a;color:#fff;border:none;padding:12px;border-radius:24px;font-weight:700;width:100%;cursor:pointer;font-size:14px;margin-top:8px}
+.authLink{background:none;border:none;color:#888;width:100%;margin-top:12px;font-size:12px;cursor:pointer;text-decoration:underline}
+
+#profileScreen{position:fixed;inset:0;background:#000;z-index:2500;display:none;overflow-y:auto;padding-bottom:72px}
+#profileScreen.show{display:block}
+.prof-topbar{position:sticky;top:0;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);height:56px;display:flex;align-items:center;padding:0 14px;gap:12px;z-index:10;border-bottom:1px solid #1a1a1a}
+.prof-back{background:#1a1a1a;border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
+.prof-topbar-title{font-weight:800;font-size:15px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prof-cover{height:140px;background:linear-gradient(135deg,#ff2d55 0%,#b400ff 50%,#00b4ff 100%)}
+.prof-header{padding:0 20px;margin-top:-42px}
+.prof-avatar-wrap{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px}
+.prof-avatar-wrap .avatar{width:96px;height:96px;font-size:38px;border:4px solid #000;position:relative}
+.prof-avatar-wrap .avatar.edit{cursor:pointer}
+.prof-avatar-wrap .avatar.edit::after{content:'📷';position:absolute;bottom:-2px;right:-2px;background:#00ff88;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid #000}
+.prof-actions-wrap{display:flex;gap:8px;padding-bottom:12px}
+.prof-follow-btn{background:#00ff88;color:#000;border:none;padding:10px 22px;border-radius:22px;font-weight:800;cursor:pointer;font-size:13px}
+.prof-follow-btn.following{background:#1a1a1a;color:#fff;border:1px solid #333}
+.prof-msg-btn{background:#1a1a1a;color:#fff;border:1px solid #333;padding:10px 18px;border-radius:22px;font-weight:700;cursor:pointer;font-size:13px}
+.prof-identity{padding:0 20px 16px}
+.prof-identity .pname{font-weight:900;font-size:22px}
+.prof-identity .phandle{font-size:13px;color:#888;margin-top:2px}
+.prof-identity .pbio{font-size:14px;color:#ccc;margin-top:12px;line-height:1.4}
+.prof-stats-row{display:flex;gap:24px;padding:14px 20px;border-top:1px solid #1a1a1a;border-bottom:1px solid #1a1a1a}
+.prof-stat{text-align:left;cursor:pointer}
+.prof-stat b{font-size:17px;font-weight:900;display:block}
+.prof-stat span{font-size:12px;color:#888;margin-top:1px;display:block}
+.prof-tabs{display:flex;border-bottom:1px solid #1a1a1a;position:sticky;top:56px;background:#000;z-index:9}
+.prof-tab{flex:1;background:none;border:none;color:#888;padding:14px;font-weight:700;font-size:13px;cursor:pointer;border-bottom:2px solid transparent}
+.prof-tab.active{color:#fff;border-bottom-color:#00ff88}
+.prof-posts-list{padding:8px}
+.prof-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.prof-tile{aspect-ratio:1;background:#141414;position:relative;cursor:pointer;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.prof-tile img,.prof-tile video{width:100%;height:100%;object-fit:cover}
+.prof-tile .tile-text{padding:8px;font-size:11px;color:#888;text-align:center;word-break:break-word;line-height:1.3;overflow:hidden}
+.prof-tile .tile-badge{position:absolute;bottom:4px;left:4px;background:rgba(0,0,0,.7);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px}
+
+.user-list-row{display:flex;align-items:center;gap:12px;padding:12px 20px;cursor:pointer;border-bottom:1px solid #0f0f0f}
+.user-list-row:hover{background:#0a0a0a}
+.user-list-row .ul-info{flex:1;min-width:0}
+.user-list-row .ul-name{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-list-row .ul-handle{font-size:12px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.user-list-row .ul-follow-btn{background:#00ff88;color:#000;border:none;padding:6px 16px;border-radius:18px;font-weight:800;cursor:pointer;font-size:12px}
+.user-list-row .ul-follow-btn.following{background:#1a1a1a;color:#fff;border:1px solid #333}
+
+.likers-list{max-height:60vh;overflow-y:auto;margin-top:14px}
+.liker-row{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid #1a1a1a;cursor:pointer;border-radius:10px}
+.liker-row:hover{background:#141414}
+.liker-info{flex:1;min-width:0}
+.liker-name{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.liker-handle{font-size:11px;color:#888}
+.liker-you{background:#00ff88;color:#000;font-size:10px;font-weight:800;padding:3px 8px;border-radius:10px}
+
+.share-sheet{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.share-link-box{background:#141414;border:1px solid #222;border-radius:12px;padding:12px 14px;font-size:12px;color:#aaa;word-break:break-all;line-height:1.4;max-height:80px;overflow-y:auto}
+.share-action{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#141414;border:1px solid #222;border-radius:12px;cursor:pointer;font-size:14px;font-weight:600;color:#fff;text-align:left;width:100%}
+.share-action:hover{border-color:#00ff88}
+.share-action .sa-icon{font-size:20px;width:24px;text-align:center}
+
+#chatListScreen{position:fixed;inset:0;background:#000;z-index:2700;display:none;overflow-y:auto;padding-bottom:20px}
+#chatListScreen.show{display:block}
+#chatConversation{position:fixed;inset:0;background:#000;z-index:2700;display:none;flex-direction:column}
+#chatConversation.show{display:flex}
+.chat-topbar{position:sticky;top:0;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);height:56px;display:flex;align-items:center;padding:0 14px;gap:12px;z-index:10;border-bottom:1px solid #1a1a1a}
+.chat-header-info{display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer}
+.chat-header-info .chat-name{font-weight:800;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-header-info .chat-handle{font-size:11px;color:#888}
+.chat-messages{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:6px}
+.chat-bubble-row{display:flex;flex-direction:column;align-items:flex-start;max-width:80%}
+.chat-bubble-row.mine{align-self:flex-end;align-items:flex-end}
+.chat-bubble{background:#1a1a1a;color:#fff;padding:10px 14px;border-radius:18px;font-size:14px;line-height:1.4;word-break:break-word;max-width:100%}
+.chat-bubble-row.mine .chat-bubble{background:#00ff88;color:#000}
+.chat-bubble-time{font-size:10px;color:#666;margin-top:3px;padding:0 4px}
+.chat-input-bar{padding:10px 12px;border-top:1px solid #1a1a1a;display:flex;gap:8px;align-items:center;background:#000;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+.chat-input-bar input{flex:1;background:#141414;border:1px solid #222;color:#fff;padding:12px 16px;border-radius:24px;font-size:14px}
+.chat-input-bar input:focus{border-color:#00ff88}
+.chat-send-btn{background:#00ff88;color:#000;border:none;width:42px;height:42px;border-radius:50%;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px}
+.chat-list-row{display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;border-bottom:1px solid #0f0f0f}
+.chat-list-row:hover{background:#0a0a0a}
+.chat-list-info{flex:1;min-width:0}
+.chat-list-name{font-weight:700;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-list-msg{font-size:13px;color:#888;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chat-list-meta{text-align:right;flex:0 0 auto}
+.chat-list-time{font-size:11px;color:#666}
+.chat-list-unread{background:#00ff88;color:#000;font-size:11px;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-top:4px;margin-left:auto;padding:0 5px}
+
+#toastContainer{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:5000;display:flex;flex-direction:column;gap:8px;pointer-events:none;width:calc(100% - 32px);max-width:400px}
+.toast{background:#141414;border:1px solid #222;color:#fff;padding:12px 16px;border-radius:14px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.5);display:flex;align-items:center;gap:10px;animation:toastIn .25s ease;pointer-events:auto}
+.toast.success{border-color:#00ff88;color:#00ff88}
+.toast.error{border-color:#ff2d55;color:#ff8fa3}
+.toast.info{border-color:#4da6ff;color:#8fc4ff}
+@keyframes toastIn{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
+@keyframes toastOut{to{transform:translateY(-20px);opacity:0}}
+.empty-state{padding:60px 20px;text-align:center;color:#555}
+.empty-state h3{font-size:16px;color:#888;margin-bottom:6px}
+.empty-state p{font-size:12px;line-height:1.5}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(0,255,136,.3);border-top-color:#00ff88;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.user-pulse{background:#00ff88;border-radius:50%;box-shadow:0 0 0 0 rgba(0,255,136,.7);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(0,255,136,.7)}70%{box-shadow:0 0 0 22px rgba(0,255,136,0)}100%{box-shadow:0 0 0 0 rgba(0,255,136,0)}}
+.leaflet-popup-content-wrapper{background:#0d0d0d;color:#fff;border-radius:12px}
+.leaflet-popup-tip{background:#0d0d0d}
+#netLost{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:4000;display:none;align-items:center;justify-content:center;padding:24px;text-align:center}
+#netLost.show{display:flex}
+.net-lost-box{max-width:340px}
+.net-lost-box .icon{font-size:56px;margin-bottom:16px;opacity:.4}
+.net-lost-box h2{font-size:18px;font-weight:900;margin-bottom:8px}
+.net-lost-box p{font-size:13px;color:#888;line-height:1.5}
+.net-lost-box button{background:#00ff88;color:#000;border:none;padding:12px 28px;border-radius:24px;font-weight:800;cursor:pointer;margin-top:20px;font-size:14px}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#000}
+::-webkit-scrollbar-thumb{background:#222;border-radius:3px}
+
+.live-panel-wrap{padding:12px}
+.live-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.live-header h2{font-size:20px;font-weight:900;display:flex;align-items:center;gap:8px}
+.live-pill-live{background:#ff2d55;color:#fff;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:900;letter-spacing:.5px;display:flex;align-items:center;gap:4px}
+.live-pill-live::before{content:'';width:5px;height:5px;background:#fff;border-radius:50%;animation:pulseDot 1.2s infinite}
+@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.4}}
+.go-live-btn{background:linear-gradient(135deg,#ff2d55,#b400ff);color:#fff;border:none;padding:10px 18px;border-radius:24px;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 4px 16px rgba(255,45,85,.3)}
+.go-live-btn:hover{transform:scale(1.02)}
+.live-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:640px){.live-grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:900px){.live-grid{grid-template-columns:repeat(4,1fr)}}
+.live-card{position:relative;aspect-ratio:3/4;border-radius:16px;overflow:hidden;cursor:pointer;background:#111}
+.live-card video,.live-card img{width:100%;height:100%;object-fit:cover}
+.live-card-overlay{position:absolute;inset:0;background:linear-gradient(transparent 40%,rgba(0,0,0,.85))}
+.live-card-top{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between}
+.live-card-badge{background:#ff2d55;color:#fff;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:900;display:flex;align-items:center;gap:4px}
+.live-card-badge::before{content:'';width:5px;height:5px;background:#fff;border-radius:50%;animation:pulseDot 1.2s infinite}
+.live-card-viewers{background:rgba(0,0,0,.6);color:#fff;padding:3px 8px;border-radius:10px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px}
+.live-card-bottom{position:absolute;bottom:0;left:0;right:0;padding:12px}
+.live-card-host{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.live-card-host .avatar{width:28px;height:28px;font-size:11px;border:2px solid rgba(255,255,255,.3)}
+.live-card-host-name{font-weight:800;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.live-card-title{font-size:13px;font-weight:700;line-height:1.3;max-height:36px;overflow:hidden}
+.live-empty{text-align:center;padding:60px 20px;color:#555}
+.live-empty .live-empty-icon{font-size:64px;margin-bottom:16px;opacity:.3}
+
+#liveScreen{position:fixed;inset:0;background:#000;z-index:2800;display:none;overflow:hidden}
+#liveScreen.show{display:block}
+.live-video-area{position:absolute;inset:0;background:#000}
+.live-video-area video{width:100%;height:100%;object-fit:cover;background:#000}
+.live-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a0033,#330033,#001133);background-size:400% 400%;animation:gradShift 8s infinite}
+@keyframes gradShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.live-placeholder-avatar{width:130px;height:130px;border-radius:50%;border:4px solid #00ff88;box-shadow:0 0 60px rgba(0,255,136,.5);margin-bottom:20px;object-fit:cover;background:linear-gradient(135deg,#ff2d55,#b400ff);display:flex;align-items:center;justify-content:center;font-size:48px;font-weight:900;overflow:hidden}
+.live-placeholder-avatar img{width:100%;height:100%;object-fit:cover}
+.live-placeholder-name{font-size:22px;font-weight:900}
+.live-placeholder-sub{font-size:13px;color:#888;margin-top:8px}
+.live-placeholder-sub .dots{display:inline-flex;gap:2px;margin-left:4px}
+.live-placeholder-sub .dots span{width:4px;height:4px;background:#00ff88;border-radius:50%;animation:dotBounce 1s infinite}
+.live-placeholder-sub .dots span:nth-child(2){animation-delay:.15s}
+.live-placeholder-sub .dots span:nth-child(3){animation-delay:.3s}
+@keyframes dotBounce{0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-6px);opacity:1}}
+
+.live-topbar{position:absolute;top:0;left:0;right:0;padding:12px 14px;display:flex;align-items:center;gap:10px;z-index:10;background:linear-gradient(rgba(0,0,0,.7),transparent)}
+.live-host-pill{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.5);padding:4px 14px 4px 4px;border-radius:30px;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.live-host-pill .avatar{width:32px;height:32px;font-size:12px}
+.live-host-pill-name{font-weight:800;font-size:13px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.live-viewers-pill{margin-left:auto;background:rgba(0,0,0,.5);padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.live-close-btn{background:rgba(0,0,0,.5);border:none;color:#fff;width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.live-close-btn:hover{background:rgba(0,0,0,.7)}
+
+.live-top-gifters{position:absolute;top:80px;left:12px;background:rgba(0,0,0,.5);border-radius:14px;padding:10px 12px;z-index:5;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);min-width:150px;max-width:180px}
+.live-top-gifters-title{font-size:10px;font-weight:800;color:#ffcc00;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:4px}
+.gifter-row{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:12px}
+.gifter-rank{font-weight:900;color:#ffcc00;width:16px;text-align:center}
+.gifter-rank.gold{color:#ffd700}
+.gifter-rank.silver{color:#c0c0c0}
+.gifter-rank.bronze{color:#cd7f32}
+.gifter-avatar{width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#00ff88,#00b4ff);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:#000;overflow:hidden}
+.gifter-avatar img{width:100%;height:100%;object-fit:cover}
+.gifter-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.gifter-coins{color:#00ff88;font-weight:700;font-size:11px}
+
+.live-chat-container{position:absolute;bottom:95px;left:10px;right:10px;max-height:260px;overflow-y:auto;z-index:5;pointer-events:auto;display:flex;flex-direction:column;gap:4px;scrollbar-width:none;padding-right:60px}
+.live-chat-container::-webkit-scrollbar{display:none}
+.live-chat-message{display:flex;gap:8px;padding:6px 10px;background:rgba(0,0,0,.55);border-radius:14px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);animation:chatSlideIn .3s ease;align-self:flex-start;max-width:100%}
+@keyframes chatSlideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.live-chat-message .cm-user{font-weight:800;font-size:12px;color:#00ff88;white-space:nowrap}
+.live-chat-message .cm-text{font-size:12px;color:#fff;word-break:break-word}
+.live-chat-message.join{background:rgba(0,180,255,.3);border:1px solid rgba(0,180,255,.4)}
+.live-chat-message.join .cm-text{color:#8fc4ff;font-style:italic}
+.live-chat-message.gift{background:linear-gradient(90deg,rgba(255,45,85,.7),rgba(180,0,255,.5));border:1px solid rgba(255,204,0,.4)}
+.live-chat-message.gift .cm-user{color:#ffcc00}
+.live-chat-message.gift .cm-text{color:#fff;font-weight:600}
+
+.live-bottombar{position:absolute;bottom:0;left:0;right:0;padding:12px;display:flex;gap:8px;align-items:center;z-index:10;background:linear-gradient(transparent,rgba(0,0,0,.8));padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+.live-chat-input{flex:1;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:24px;padding:10px 16px;color:#fff;font-size:13px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);min-width:0}
+.live-chat-input::placeholder{color:rgba(255,255,255,.5)}
+.live-chat-input:focus{border-color:#00ff88}
+.live-action-btn{background:rgba(0,0,0,.6);border:none;color:#fff;width:44px;height:44px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);flex:0 0 auto;transition:transform .15s}
+.live-action-btn:active{transform:scale(.9)}
+.live-gift-btn{background:linear-gradient(135deg,#ff2d55,#b400ff);color:#fff;width:52px;height:52px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 4px 20px rgba(255,45,85,.5);animation:giftPulse 2s infinite;flex:0 0 auto}
+@keyframes giftPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+
+.gift-animation-overlay{position:fixed;inset:0;z-index:5000;pointer-events:none;display:flex;align-items:center;justify-content:center}
+.gift-anim-box{text-align:center;animation:giftZoomIn 3s ease-out forwards}
+@keyframes giftZoomIn{0%{opacity:0;transform:scale(.3) rotate(-20deg)}20%{opacity:1;transform:scale(1.2) rotate(0)}30%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:scale(1.5) translateY(-50px)}}
+.gift-anim-emoji{font-size:120px;display:block;filter:drop-shadow(0 0 40px rgba(255,204,0,.8))}
+.gift-anim-name{font-size:28px;font-weight:900;color:#ffcc00;margin-top:12px;text-shadow:0 4px 20px rgba(0,0,0,.9)}
+.gift-anim-sender{font-size:14px;color:#fff;margin-top:8px;text-shadow:0 2px 8px rgba(0,0,0,.9)}
+.floating-gift{position:fixed;bottom:100px;left:20px;z-index:4900;pointer-events:none;display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,rgba(255,45,85,.9),rgba(180,0,255,.9));padding:10px 16px;border-radius:30px;box-shadow:0 4px 20px rgba(0,0,0,.5);animation:floatUp 3s ease-out forwards}
+@keyframes floatUp{0%{opacity:0;transform:translateY(20px) scale(.8)}15%{opacity:1;transform:translateY(0) scale(1)}85%{opacity:1}100%{opacity:0;transform:translateY(-60px) scale(.9)}}
+.floating-gift .fg-emoji{font-size:32px}
+.floating-gift .fg-info{display:flex;flex-direction:column}
+.floating-gift .fg-sender{font-size:11px;color:#fff;font-weight:700}
+.floating-gift .fg-name{font-size:13px;color:#ffcc00;font-weight:900}
+
+.coin-balance{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#ffcc00,#ff8800);color:#000;padding:6px 14px;border-radius:20px;font-weight:800;font-size:13px;cursor:pointer;transition:transform .15s}
+.coin-balance:hover{transform:scale(1.02)}
+.coin-package{display:flex;align-items:center;gap:12px;padding:14px;background:#141414;border:1px solid #222;border-radius:14px;margin-top:8px;cursor:pointer;transition:border-color .15s}
+.coin-package:hover{border-color:#00ff88}
+.coin-package.popular{border-color:#ffcc00;background:linear-gradient(90deg,#141414,rgba(255,204,0,.05))}
+.coin-pkg-icon{font-size:40px}
+.coin-pkg-info{flex:1}
+.coin-pkg-coins{font-weight:900;font-size:16px}
+.coin-pkg-bonus{color:#00ff88;font-size:11px;font-weight:700}
+.coin-pkg-price{font-weight:800;color:#fff;text-align:right}
+.coin-pkg-tag{background:#ffcc00;color:#000;font-size:9px;font-weight:900;padding:2px 6px;border-radius:6px;text-transform:uppercase;display:inline-block;margin-left:6px}
+.gift-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.gift-item{background:#141414;border:2px solid transparent;border-radius:14px;padding:10px 4px;text-align:center;cursor:pointer;transition:all .15s;position:relative}
+.gift-item:hover{border-color:#00ff88}
+.gift-item.selected{border-color:#00ff88;background:rgba(0,255,136,.1)}
+.gift-item.locked{opacity:.4;cursor:not-allowed}
+.gift-item-emoji{font-size:32px;line-height:1;display:block}
+.gift-item-name{font-size:10px;color:#ddd;margin-top:6px;font-weight:700}
+.gift-item-coins{font-size:11px;color:#00ff88;font-weight:800;margin-top:2px}
+.gift-item.gold{border-color:rgba(255,204,0,.3)}
+.gift-item.gold .gift-item-coins{color:#ffcc00}
+.gift-item.diamond{border-color:rgba(0,180,255,.4)}
+.gift-item.diamond .gift-item-coins{color:#4da6ff}
+.gift-qty-bar{display:flex;justify-content:center;gap:8px;margin-top:14px}
+.gift-qty-btn{background:#1a1a1a;border:1px solid #222;color:#fff;padding:6px 14px;border-radius:16px;font-size:12px;font-weight:700;cursor:pointer}
+.gift-qty-btn.active{background:#00ff88;color:#000;border-color:#00ff88}
+.gift-send-bar{position:sticky;bottom:0;background:#0d0d0d;padding-top:12px;margin-top:12px;border-top:1px solid #1a1a1a;display:flex;gap:8px;align-items:center}
+.gift-send-bar .coin-balance{flex:0 0 auto}
+.gift-send-btn{flex:1;background:linear-gradient(135deg,#ff2d55,#b400ff);color:#fff;border:none;padding:12px;border-radius:24px;font-weight:800;font-size:14px;cursor:pointer}
+.gift-send-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* ===== LEGENDARY TIER ===== */
+.gift-item.legendary{border-color:rgba(255,255,255,.5);background:linear-gradient(135deg,#141414,rgba(255,255,255,.05));position:relative;overflow:hidden}
+.gift-item.legendary::before{content:'';position:absolute;inset:-2px;background:conic-gradient(from 0deg,#ff2d55,#b400ff,#00b4ff,#00ff88,#ffcc00,#ff2d55);border-radius:14px;z-index:-1;animation:legendarySpin 3s linear infinite}
+@keyframes legendarySpin{to{transform:rotate(360deg)}}
+.gift-item.legendary .gift-item-emoji{animation:legendaryBob 2s ease-in-out infinite}
+@keyframes legendaryBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.gift-item.legendary .gift-item-coins{color:#fff;font-weight:900}
+
+/* ===== KING TIER ===== */
+.gift-item.king{border-color:#ffd700;background:linear-gradient(135deg,#2a1a00,#1a0f00,#2a1a00);position:relative;overflow:hidden;box-shadow:0 0 16px rgba(255,215,0,.4),inset 0 0 20px rgba(255,215,0,.1);animation:kingGlow 2s ease-in-out infinite}
+@keyframes kingGlow{0%,100%{box-shadow:0 0 16px rgba(255,215,0,.4),inset 0 0 20px rgba(255,215,0,.1)}50%{box-shadow:0 0 28px rgba(255,215,0,.7),inset 0 0 30px rgba(255,215,0,.2)}}
+.gift-item.king::after{content:'👑';position:absolute;top:-3px;right:-3px;font-size:14px;filter:drop-shadow(0 0 4px #ffd700);animation:kingCrownBob 1.5s ease-in-out infinite}
+@keyframes kingCrownBob{0%,100%{transform:translateY(0) rotate(-10deg)}50%{transform:translateY(-2px) rotate(10deg)}}
+.gift-item.king .gift-item-name{color:#ffd700;font-weight:900;letter-spacing:.5px}
+.gift-item.king .gift-item-coins{color:#ffd700;font-weight:900}
+.gift-item.king .gift-item-emoji{animation:kingEmojiPulse 1.5s ease-in-out infinite}
+@keyframes kingEmojiPulse{0%,100%{transform:scale(1);filter:drop-shadow(0 0 4px gold)}50%{transform:scale(1.1);filter:drop-shadow(0 0 12px gold)}}
+
+/* KING FULLSCREEN ANIMATION */
+.king-overlay{position:fixed;inset:0;z-index:6000;pointer-events:none;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center,rgba(255,215,0,.35) 0%,rgba(0,0,0,.9) 70%);animation:kingOverlayIn 6s ease-out forwards;overflow:hidden}
+@keyframes kingOverlayIn{0%{opacity:0}8%{opacity:1}85%{opacity:1}100%{opacity:0}}
+.king-crown{font-size:220px;position:absolute;filter:drop-shadow(0 0 80px rgba(255,215,0,1));animation:crownFall 6s cubic-bezier(.34,1.56,.64,1);line-height:1}
+@keyframes crownFall{0%{transform:translateY(-300px) rotate(-40deg) scale(.2);opacity:0}25%{transform:translateY(0) rotate(0) scale(1.4);opacity:1}32%{transform:translateY(0) rotate(0) scale(1)}82%{transform:translateY(0) rotate(0) scale(1);opacity:1}100%{transform:translateY(-80px) rotate(0) scale(.6);opacity:0}}
+.king-text{font-size:72px;font-weight:900;color:#ffd700;text-shadow:0 0 20px rgba(255,215,0,.9),0 0 40px rgba(255,204,0,.8),0 0 80px rgba(255,150,0,.7);animation:kingTextPop 6s cubic-bezier(.34,1.56,.64,1);letter-spacing:10px;position:relative;z-index:2;text-align:center}
+@keyframes kingTextPop{0%{opacity:0;transform:scale(0) rotate(-8deg)}28%{opacity:1;transform:scale(1.4) rotate(0)}33%{transform:scale(1)}82%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.2)}}
+.king-subtitle{position:absolute;bottom:32%;font-size:20px;font-weight:800;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,1);animation:kingSubIn 6s ease-out;text-align:center;padding:0 24px;z-index:2}
+@keyframes kingSubIn{0%,25%{opacity:0;transform:translateY(20px)}35%{opacity:1;transform:translateY(0)}82%{opacity:1}100%{opacity:0}}
+.king-firework{position:absolute;width:6px;height:6px;border-radius:50%;animation:fireworkBurst 1.6s ease-out forwards;box-shadow:0 0 12px currentColor}
+@keyframes fireworkBurst{0%{transform:translate(0,0) scale(1);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+
+/* KING CROWN ON HOST */
+.live-host-pill.king-crowned{background:linear-gradient(90deg,rgba(255,215,0,.3),rgba(255,180,0,.15))!important;border:1.5px solid #ffd700;box-shadow:0 0 24px rgba(255,215,0,.6);animation:hostCrownGlow 2s ease-in-out infinite;position:relative}
+.live-host-pill.king-crowned::after{content:'👑';position:absolute;top:-14px;right:-4px;font-size:22px;filter:drop-shadow(0 0 8px gold);animation:hostCrownBob 1.5s ease-in-out infinite}
+@keyframes hostCrownGlow{0%,100%{box-shadow:0 0 24px rgba(255,215,0,.6)}50%{box-shadow:0 0 36px rgba(255,215,0,.9)}}
+@keyframes hostCrownBob{0%,100%{transform:translateY(0) rotate(-10deg)}50%{transform:translateY(-4px) rotate(10deg)}}
+
+/* LEGENDARY FULLSCREEN */
+.legendary-overlay{position:fixed;inset:0;z-index:5900;pointer-events:none;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at center,rgba(180,0,255,.25) 0%,rgba(0,0,0,.85) 70%);animation:legendaryOverlayIn 4s ease-out forwards}
+@keyframes legendaryOverlayIn{0%{opacity:0}12%{opacity:1}85%{opacity:1}100%{opacity:0}}
+.legendary-emoji{font-size:170px;filter:drop-shadow(0 0 60px rgba(180,0,255,.9));animation:legendaryFloat 4s cubic-bezier(.34,1.56,.64,1);line-height:1}
+@keyframes legendaryFloat{0%{transform:translateY(80px) scale(.3);opacity:0}22%{transform:translateY(0) scale(1.2);opacity:1}30%{transform:translateY(-10px) scale(1)}80%{transform:translateY(-10px) scale(1);opacity:1}100%{transform:translateY(-60px) scale(.8);opacity:0}}
+.legendary-name{position:absolute;bottom:35%;font-size:32px;font-weight:900;background:linear-gradient(90deg,#ff2d55,#b400ff,#00b4ff,#ff2d55);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:legendaryTextShift 4s ease-out,legendaryGradient 3s linear infinite;text-align:center}
+@keyframes legendaryTextShift{0%{opacity:0;transform:scale(.5)}30%{opacity:1;transform:scale(1.1)}40%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:scale(1.1)}}
+@keyframes legendaryGradient{to{background-position:300% 0}}
+.legendary-sender{position:absolute;bottom:28%;font-size:14px;color:#fff;font-weight:700;text-shadow:0 2px 12px rgba(0,0,0,1);animation:legendaryTextShift 4s ease-out}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo" onclick="showFeed()"><span class="fire">🔥</span><span class="d">DELAJ</span></div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button class="icon-btn" onclick="openCoinShop()" id="coinTopBtn" style="display:none;background:linear-gradient(135deg,#ffcc00,#ff8800);color:#000;font-weight:900;font-size:12px;width:auto;padding:0 12px;border-radius:18px;height:32px;gap:4px">💎 <span id="coinTopAmount">0</span></button>
+    <button class="icon-btn" onclick="openChatList()" aria-label="Chat" style="display:none" id="chatTopBtn">💬<span id="chatTopBadge" class="badge"></span></button>
+    <button class="icon-btn" onclick="toggleCreate()" aria-label="Create post">+</button>
+    <div id="userArea"><button class="icon-btn" onclick="openAuth()" aria-label="Account">👤</button></div>
+  </div>
+</div>
+
+<div class="app">
+  <div id="mapPanel" class="map-side">
+    <div id="map"></div>
+    <div style="padding:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="filter-btn" onclick="requestLocation(true)">📍 My Location</button>
+      <button class="filter-btn" onclick="switchTab('feed');filterNear()">Near Me 5km</button>
+      <button class="filter-btn" onclick="switchTab('feed');showAllPosts()">All Posts</button>
+    </div>
+  </div>
+
+  <div id="feedPanel" class="feed-side">
+    <div class="search-wrap">
+      <div class="search-bar">
+        <span style="color:#666;font-size:14px">🔍</span>
+        <input id="searchInput" type="search" placeholder="Search posts, places, people..." autocomplete="off" oninput="onSearchInput()">
+        <button class="search-clear" id="searchClear" onclick="clearSearch()">×</button>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-btn active" id="f-all" onclick="showAllPosts()">All</button>
+      <button class="filter-btn" id="f-near" onclick="filterNear()">📍 Near Me</button>
+      <button class="filter-btn" id="f-saved" onclick="showSaved()">🔖 Saved</button>
+      <button class="filter-btn" onclick="switchTab('trend')">🔥 Trending</button>
+    </div>
+    <div id="sharedBanner"></div>
+    <div id="posts"><div style="padding:60px 20px;text-align:center"><span class="spinner"></span><p style="font-size:12px;color:#666;margin-top:12px">Loading feed…</p></div></div>
+  </div>
+
+  <div id="livePanel" class="map-side">
+    <div class="live-panel-wrap">
+      <div class="live-header">
+        <h2>🔴 Live <span class="live-pill-live">LIVE</span></h2>
+        <button class="go-live-btn" onclick="openGoLiveModal()">📹 Go Live</button>
+      </div>
+      <div id="liveStreamsList"></div>
+    </div>
+  </div>
+
+  <div id="trendPanel" class="map-side">
+    <div style="padding:16px">
+      <h3 style="font-weight:900">🔥 Trending</h3>
+      <p style="color:#666;font-size:11px;margin-top:4px">Most posted locations — tap to filter</p>
+      <div id="trendingList" style="margin-top:12px"></div>
+      <button style="margin-top:16px;background:#1a1a1a;border:none;color:#fff;padding:12px;border-radius:20px;width:100%;font-weight:700;cursor:pointer" onclick="switchTab('feed')">Back to Feed</button>
+    </div>
+  </div>
+</div>
+
+<div id="createBox" class="create-box">
+  <textarea id="postText" rows="2" placeholder="What's happening here?" maxlength="500"></textarea>
+  <input id="customLoc" type="text" placeholder="Location e.g Ikeja Computer Village" style="margin-top:10px" maxlength="60">
+  <div class="media-btns">
+    <label class="media-label">📷 Photo/Video<input type="file" id="photoInput" accept="image/*,video/*" style="display:none" onchange="previewMedia()"></label>
+    <span id="mediaInfo" style="font-size:11px;color:#888"></span>
+  </div>
+  <img id="photoPreview" class="preview" alt="">
+  <video id="videoPreview" class="preview" controls muted playsinline></video>
+  <p id="uploadStatus" style="font-size:12px;color:#00ff88;display:none;margin-top:8px"></p>
+  <div class="create-actions">
+    <button class="btn-cancel" onclick="toggleCreate()">Cancel</button>
+    <button id="btnPostNow" class="btn-post" onclick="createPost()">Post Now</button>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <button class="nav-item active" id="nav-feed" onclick="switchTab('feed')"><b>🏠</b>Feed</button>
+  <button class="nav-item" id="nav-live" onclick="switchTab('live')"><b>🔴</b>Live</button>
+  <button class="nav-item" onclick="toggleCreate()"><span class="nav-center">+</span>Post</button>
+  <button class="nav-item" id="nav-chat" onclick="openChatList()"><b>💬</b>Chat<span id="chatNavBadge" class="nav-badge"></span></button>
+  <button class="nav-item" id="nav-you" onclick="openAuth()"><b>👤</b>You</button>
+</div>
+
+<div id="liveScreen">
+  <div class="live-video-area" id="liveVideoArea"></div>
+  <div class="live-topbar">
+    <div class="live-host-pill" id="liveHostPill" onclick="openProfileFromLive()">
+      <div class="avatar" id="liveHostAvatar"></div>
+      <span class="live-host-pill-name" id="liveHostName">Host</span>
+    </div>
+    <div class="live-viewers-pill">👁️ <span id="liveViewerCount">0</span></div>
+    <button class="live-close-btn" onclick="leaveLive()">✕</button>
+  </div>
+  <div class="live-top-gifters" id="liveTopGifters" style="display:none">
+    <div class="live-top-gifters-title">🏆 Top Gifters</div>
+    <div id="liveTopGiftersList"></div>
+  </div>
+  <div class="live-chat-container" id="liveChatContainer"></div>
+  <div class="live-bottombar" id="liveBottomBar">
+    <input class="live-chat-input" id="liveChatInput" placeholder="Say something..." maxlength="200" onkeydown="if(event.key==='Enter')sendLiveChat()">
+    <button class="live-action-btn" onclick="sendLiveChat()" title="Send">➤</button>
+    <button class="live-gift-btn" onclick="openGiftPicker()" title="Send gift">🎁</button>
+    <button class="live-action-btn" onclick="toggleLiveChatVisibility()" title="Toggle chat">💬</button>
+  </div>
+</div>
+
+<div id="liveHostControls" style="position:fixed;bottom:80px;right:16px;z-index:2900;display:none">
+  <button onclick="endLive()" style="background:#ff2d55;color:#fff;border:none;padding:12px 20px;border-radius:24px;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 4px 16px rgba(255,45,85,.4)">🔴 End Live</button>
+</div>
+
+<div id="goLiveModal" class="modal-backdrop">
+  <div class="modal-box">
+    <h3>📹 Go Live</h3>
+    <p class="modal-sub">Start a live stream. Your camera will be previewed — viewers will see your profile and interact in real time.</p>
+    <input id="goLiveTitle" type="text" class="authInput" placeholder="Stream title (e.g. Lagos rush hour chill)" maxlength="80" style="margin-top:14px">
+    <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:12px;color:#888">💎 <b style="color:#ffcc00" id="goLiveCoins">0</b> coins</span>
+      <button onclick="openCoinShop()" style="background:none;border:none;color:#00ff88;font-size:12px;cursor:pointer;text-decoration:underline">Buy coins →</button>
+    </div>
+    <button class="btn-primary" style="margin-top:16px" onclick="startLive()" id="startLiveBtn">🔴 Start Live</button>
+    <button class="authLink" type="button" onclick="closeModal('goLiveModal')">Cancel</button>
+  </div>
+</div>
+
+<div id="coinShopModal" class="modal-backdrop">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>💎 Buy Coins</h3>
+      <div class="coin-balance">💎 <span id="coinShopBalance">0</span></div>
+    </div>
+    <p class="modal-sub">Coins are used to send gifts during live streams. Support your favorite hosts!</p>
+    <div id="coinPackageList"></div>
+    <button class="authLink" type="button" onclick="closeModal('coinShopModal')">Close</button>
+  </div>
+</div>
+
+<div id="giftPickerModal" class="modal-backdrop">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>🎁 Send Gift</h3>
+      <div class="coin-balance" onclick="openCoinShop()" style="cursor:pointer">💎 <span id="giftPickerBalance">0</span></div>
+    </div>
+    <p class="modal-sub" id="giftPickerSub">Choose a gift for the host</p>
+    <div class="gift-grid" id="giftGrid"></div>
+    <div class="gift-qty-bar" id="giftQtyBar">
+      <button class="gift-qty-btn active" data-qty="1" onclick="setGiftQty(1)">×1</button>
+      <button class="gift-qty-btn" data-qty="5" onclick="setGiftQty(5)">×5</button>
+      <button class="gift-qty-btn" data-qty="10" onclick="setGiftQty(10)">×10</button>
+      <button class="gift-qty-btn" data-qty="20" onclick="setGiftQty(20)">×20</button>
+    </div>
+    <div class="gift-send-bar">
+      <span style="font-size:12px;color:#888" id="giftTotalCoins">Total: 0 💎</span>
+      <button class="gift-send-btn" id="giftSendBtn" onclick="confirmSendGift()" disabled>Send Gift</button>
+    </div>
+    <button class="authLink" type="button" onclick="closeModal('giftPickerModal')">Cancel</button>
+  </div>
+</div>
+
+<div id="profileScreen">
+  <div class="prof-topbar">
+    <button class="prof-back" onclick="closeProfile()">←</button>
+    <div class="prof-topbar-title" id="profTopTitle">Profile</div>
+  </div>
+  <div class="prof-cover"></div>
+  <div class="prof-header">
+    <div class="prof-avatar-wrap">
+      <div class="avatar" id="profAvatar"></div>
+      <div class="prof-actions-wrap" id="profActionsWrap"></div>
+    </div>
+  </div>
+  <div class="prof-identity">
+    <div class="pname" id="profName"></div>
+    <div class="phandle" id="profHandle"></div>
+    <div class="pbio" id="profBio"></div>
+  </div>
+  <div class="prof-stats-row">
+    <div class="prof-stat" onclick="switchProfileTab('posts')"><b id="profPosts">0</b><span>Posts</span></div>
+    <div class="prof-stat" onclick="openFollowersList()"><b id="profFollowers">0</b><span>Followers</span></div>
+    <div class="prof-stat" onclick="openFollowingList()"><b id="profFollowing">0</b><span>Following</span></div>
+  </div>
+  <div class="prof-tabs">
+    <button class="prof-tab active" id="ptab-posts" onclick="switchProfileTab('posts')">Posts</button>
+    <button class="prof-tab" id="ptab-likes" onclick="switchProfileTab('likes')">Liked</button>
+  </div>
+  <div id="profTabContent"></div>
+</div>
+
+<div id="chatListScreen">
+  <div class="chat-topbar">
+    <button class="prof-back" onclick="closeChatList()">←</button>
+    <div class="prof-topbar-title">Messages</div>
+  </div>
+  <div id="chatListBody" style="padding-top:8px"></div>
+</div>
+
+<div id="chatConversation">
+  <div class="chat-topbar">
+    <button class="prof-back" onclick="closeChat()">←</button>
+    <div class="chat-header-info" id="chatHeaderInfo" onclick="openProfile(currentChatPartnerId)">
+      <div class="avatar" id="chatHeaderAvatar"></div>
+      <div style="min-width:0;flex:1">
+        <div class="chat-name" id="chatHeaderName">User</div>
+        <div class="chat-handle" id="chatHeaderHandle"></div>
+      </div>
+    </div>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-input-bar">
+    <input type="text" id="chatInput" placeholder="Message..." maxlength="1000" onkeydown="if(event.key==='Enter')sendChatMessage()">
+    <button class="chat-send-btn" onclick="sendChatMessage()" id="chatSendBtn">➤</button>
+  </div>
+</div>
+
+<div id="authModal" class="modal-backdrop">
+  <div class="modal-box">
+    <div class="authTabs">
+      <button type="button" id="tabLogin" class="authTab active" onclick="setAuthMode('login')">Log In</button>
+      <button type="button" id="tabSignup" class="authTab" onclick="setAuthMode('signup')">Sign Up</button>
+    </div>
+    <h3 id="authTitle">Welcome back</h3>
+    <p id="authSub" class="modal-sub">Log in to post, watch live, and send gifts</p>
+    <div id="nameField" style="display:none"><input id="displayName" class="authInput" type="text" placeholder="Username (e.g. delaj_king)" autocomplete="nickname" maxlength="20"></div>
+    <input id="email" class="authInput" type="email" placeholder="Email" autocomplete="email">
+    <input id="password" class="authInput" type="password" placeholder="Password" autocomplete="current-password">
+    <div id="confirmField" style="display:none"><input id="password2" class="authInput" type="password" placeholder="Confirm password" autocomplete="new-password"></div>
+    <p id="authError" class="authErr"></p>
+    <button id="authSubmit" class="btn-primary" onclick="submitAuth()">Log In</button>
+    <button id="forgotBtn" class="authLink" type="button" onclick="resetPassword()">Forgot password?</button>
+    <button class="authLink" type="button" onclick="closeModal('authModal')">Close</button>
+  </div>
+</div>
+
+<div id="accountModal" class="modal-backdrop">
+  <div class="modal-box">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div id="acctAvatar" class="avatar lg"></div>
+      <div style="min-width:0;flex:1">
+        <div id="acctName" style="font-weight:800;font-size:16px;overflow:hidden;text-overflow:ellipsis"></div>
+        <div id="acctEmail" style="font-size:12px;color:#888;overflow:hidden;text-overflow:ellipsis"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:18px">
+      <div style="flex:1;background:linear-gradient(135deg,#ffcc00,#ff8800);color:#000;border-radius:14px;padding:14px;text-align:center">
+        <div style="font-weight:900;font-size:22px" id="acctCoins">0</div>
+        <div style="font-size:11px;font-weight:700">💎 Coins</div>
+      </div>
+      <div style="flex:1;background:#141414;border:1px solid #222;border-radius:14px;padding:14px;text-align:center">
+        <div style="font-weight:900;font-size:22px;color:#00ff88" id="acctCoinsEarned">0</div>
+        <div style="font-size:11px;font-weight:700;color:#888">💎 Earned</div>
+      </div>
+    </div>
+    <button class="btn-secondary" style="margin-top:12px" onclick="openCoinShop()">💎 Buy Coins</button>
+    <button class="btn-secondary" onclick="closeModal('accountModal');openProfile(currentUser.uid)">👤 View My Profile</button>
+    <button class="btn-secondary" onclick="document.getElementById('avatarUploadInput').click()">📷 Change Profile Picture</button>
+    <button class="btn-secondary" onclick="editUsername()">✏️ Change Username</button>
+    <button class="btn-primary" style="margin-top:8px;background:#ff2d55;color:#fff" onclick="signOutUser()">Sign Out</button>
+    <button class="authLink" type="button" onclick="closeModal('accountModal')">Close</button>
+  </div>
+</div>
+<input type="file" id="avatarUploadInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
+
+<div id="userListModal" class="modal-backdrop">
+  <div class="modal-box" style="padding:0">
+    <div style="padding:16px 20px;border-bottom:1px solid #1a1a1a;display:flex;align-items:center;gap:12px">
+      <button class="prof-back" onclick="closeModal('userListModal')" style="width:32px;height:32px;font-size:14px">←</button>
+      <div>
+        <h3 id="userListTitle" style="font-size:16px">Followers</h3>
+        <p class="modal-sub" id="userListSub" style="margin:0"></p>
+      </div>
+    </div>
+    <div id="userListBody" style="max-height:70vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<div id="likersModal" class="modal-backdrop">
+  <div class="modal-box">
+    <h3 id="likersTitle">❤️ Likes</h3>
+    <p class="modal-sub">People who liked this post</p>
+    <div id="likersList" class="likers-list"><div class="comments-empty">Loading…</div></div>
+    <button class="authLink" type="button" onclick="closeModal('likersModal')">Close</button>
+  </div>
+</div>
+
+<div id="shareModal" class="modal-backdrop">
+  <div class="modal-box">
+    <h3>🔗 Share this post</h3>
+    <p class="modal-sub">Anyone with the link can view this post</p>
+    <div class="share-sheet">
+      <button class="share-action" onclick="copyShareLink()"><span class="sa-icon">📋</span><span style="flex:1">Copy Link<span style="display:block;font-size:11px;color:#666;font-weight:400" id="copyLinkHint">Tap to copy</span></span></button>
+      <button class="share-action" onclick="nativeShare()"><span class="sa-icon">📤</span><span style="flex:1">Share via…</span></button>
+      <button class="share-action" onclick="shareToWhatsApp()"><span class="sa-icon">💬</span><span style="flex:1">WhatsApp</span></button>
+      <button class="share-action" onclick="shareToTwitter()"><span class="sa-icon">🐦</span><span style="flex:1">Twitter / X</span></button>
+      <div class="share-link-box" id="shareLinkBox"></div>
+    </div>
+    <button class="authLink" type="button" onclick="closeModal('shareModal')">Close</button>
+  </div>
+</div>
+
+<div id="netLost">
+  <div class="net-lost-box">
+    <div class="icon">📡</div>
+    <h2>Connection lost</h2>
+    <p>DELAJ needs internet to work. Please check your connection and try again.</p>
+    <button onclick="location.reload()">Retry</button>
+  </div>
+</div>
+
+<div id="toastContainer"></div>
+
+<script>
+// ===== CONFIG =====
+const PAYSTACK_PUBLIC_KEY = "pk_live_1b270ceb8da1fc3b9e6c0b815fbd8a25556bc7e2";
+const CARTO_API_KEY = "cb1_4kr4_1_cbd89a40a1788bbd74a22c47";
+const firebaseConfig = {
+  apiKey: "AIzaSyDIAAOD5A41mmdo1I7O2etNXKdZZ4IAVZA",
+  authDomain: "desocial-26dd1.firebaseapp.com",
+  projectId: "desocial-26dd1",
+  storageBucket: "desocial-26dd1.firebasestorage.app",
+  messagingSenderId: "388387546357",
+  appId: "1:388387546357:web:881c774d8f6d5700bd91bc",
+  measurementId: "G-6Z0TK8S6FK"
+};
+// ==================
+
+// ===== GIFT CATALOG =====
+const GIFT_CATALOG = [
+  // 🥉 Bronze
+  { id:'rose',     name:'Rose',         emoji:'🌹', coins:1,      tier:'bronze',    anim:'float', color:'#ff6b9d' },
+  { id:'love',     name:'Love',         emoji:'❤️', coins:5,      tier:'bronze',    anim:'pop',   color:'#ff2d55' },
+  { id:'icecream', name:'Ice Cream',    emoji:'🍦', coins:15,     tier:'bronze',    anim:'float', color:'#ffcc00' },
+  // 🥈 Silver
+  { id:'diamond',  name:'Diamond',      emoji:'💎', coins:50,     tier:'silver',    anim:'spin',  color:'#4da6ff' },
+  { id:'cap',      name:'Cap',          emoji:'🧢', coins:100,    tier:'silver',    anim:'pop',   color:'#00ff88' },
+  { id:'hat',      name:'Top Hat',      emoji:'🎩', coins:200,    tier:'silver',    anim:'pop',   color:'#b400ff' },
+  // 🥇 Gold
+  { id:'delajcap', name:'Delaj Cap',    emoji:'👑', coins:500,    tier:'gold',      anim:'royal', color:'#ffcc00' },
+  { id:'sword',    name:'Sword',        emoji:'⚔️', coins:1000,   tier:'gold',      anim:'slash', color:'#cccccc' },
+  { id:'tiger',    name:'Tiger',        emoji:'🐯', coins:2000,   tier:'gold',      anim:'charge',color:'#ff8800' },
+  // 💎 Diamond
+  { id:'lion',     name:'Lion',         emoji:'🦁', coins:5000,   tier:'diamond',   anim:'roar',  color:'#ffcc00' },
+  { id:'rocket',   name:'Rocket',       emoji:'🚀', coins:10000,  tier:'diamond',   anim:'launch',color:'#00b4ff' },
+  { id:'crown',    name:'Crown',        emoji:'👑', coins:20000,  tier:'diamond',   anim:'royal', color:'#ffd700' },
+  // ⭐ LEGENDARY (≈$100–$500)
+  { id:'yacht',    name:'Yacht',        emoji:'🛥️', coins:50000,  tier:'legendary', anim:'sail',  color:'#4da6ff' },
+  { id:'ferrari',  name:'Ferrari',      emoji:'🏎️', coins:100000, tier:'legendary', anim:'race',  color:'#ff2d55' },
+  { id:'ring',     name:'Diamond Ring', emoji:'💍', coins:175000, tier:'legendary', anim:'shine', color:'#ffffff' },
+  // 👑 KING TIER (≈$500–$1,000+)
+  { id:'emperor',  name:'Emperor',      emoji:'🏆', coins:250000, tier:'king',      anim:'royal', color:'#ff8800' },
+  { id:'king',     name:'KING',         emoji:'👑', coins:400000, tier:'king',      anim:'king',  color:'#ffd700' }
+];
+
+// ===== COIN PACKAGES =====
+const COIN_PACKAGES = [
+  { coins:100,    price:500,     bonus:0,      tag:'' },
+  { coins:500,    price:2000,    bonus:50,     tag:'Popular' },
+  { coins:1000,   price:3500,    bonus:150,    tag:'Best Value' },
+  { coins:5000,   price:15000,   bonus:1000,   tag:'Mega' },
+  { coins:10000,  price:25000,   bonus:2500,   tag:'Ultimate' },
+  { coins:25000,  price:80000,   bonus:1500,   tag:'' },
+  { coins:50000,  price:150000,  bonus:4000,   tag:'Pro' },
+  { coins:100000, price:275000,  bonus:12000,  tag:'High Roller' },
+  { coins:250000, price:600000,  bonus:40000,  tag:'Whale' },
+  { coins:500000, price:1100000, bonus:100000, tag:'TYCOON' }
+];
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore(), auth = firebase.auth(), storage = firebase.storage();
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(()=>{});
+
+/* ================= STATE ================= */
+const LAGOS = [6.5244, 3.3792];
+let map, markers, userMarker = null;
+let myLat = LAGOS[0], myLng = LAGOS[1], myLocationName = "Lagos";
+let allPosts = [], currentFeedList = [], currentFilter = 'all';
+let currentUser = null, myLikes = new Set(), mySaves = new Set(), myFollows = new Set();
+let selectedFile = null, selectedType = null;
+let deepLinkHandled = false, hasRealLocation = false;
+let searchTerm = '';
+let likesUnsub = null, savesUnsub = null, followsUnsub = null, chatBadgeUnsub = null, coinsUnsub = null;
+const commentsUnsubs = {}, likersUnsubs = {};
+let currentSharePostId = null;
+let viewingProfileUserId = null;
+let currentProfileTab = 'posts';
+let currentChatUnsub = null;
+let currentChatId = null;
+let currentChatPartnerId = null;
+let replyingTo = null;
+let _memoryAnonId = null;
+let myCoins = 0;
+
+let liveStreamsUnsub = null;
+let currentStreamId = null;
+let currentStreamUnsub = null;
+let liveChatUnsub = null;
+let liveGiftsUnsub = null;
+let isBroadcaster = false;
+let myMediaStream = null;
+let currentStreamData = null;
+let giftPickerGiftId = null;
+let giftPickerQty = 1;
+
+/* ================= UTIL ================= */
+function toast(msg, type='info', duration=3000){
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type==='success'?'✅':type==='error'?'⚠️':'ℹ️'}</span><span>${escapeHtml(msg)}</span>`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(()=>{ el.style.animation = 'toastOut .25s ease forwards'; setTimeout(()=>el.remove(), 250); }, duration);
+}
+function escapeHtml(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function timestampDate(v){ return v && typeof v.toDate === 'function' ? v.toDate() : new Date(v); }
+function timeAgo(d){
+  const s = Math.floor((new Date()-d)/1000);
+  if(s < 60) return s+'s';
+  if(s < 3600) return Math.floor(s/60)+'m';
+  if(s < 86400) return Math.floor(s/3600)+'h';
+  if(s < 604800) return Math.floor(s/86400)+'d';
+  return d.toLocaleDateString();
+}
+function avatarHtml(photoURL, username, sizeClass=''){
+  const name = username || 'U';
+  if(photoURL) return `<div class="avatar ${sizeClass}"><img src="${photoURL}" alt="" loading="lazy"></div>`;
+  return `<div class="avatar ${sizeClass}">${escapeHtml(name[0].toUpperCase())}</div>`;
+}
+function getViewerId(){
+  if(currentUser) return currentUser.uid;
+  try{
+    let id = localStorage.getItem('delaj_anon_id');
+    if(!id){ id = 'anon_'+Math.random().toString(36).slice(2,12); localStorage.setItem('delaj_anon_id', id); }
+    return id;
+  }catch(e){
+    if(!_memoryAnonId) _memoryAnonId = 'anon_'+Math.random().toString(36).slice(2,12);
+    return _memoryAnonId;
+  }
+}
+
+/* ================= MAP ================= */
+function initMap(){
+  map = L.map('map', { zoomControl: true }).setView(LAGOS, 12);
+  const cartoDark = L.tileLayer(
+    `https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_API_KEY}`,
+    { attribution: '&copy; OpenStreetMap &copy; CARTO', subdomains: 'abcd', maxZoom: 20, detectRetina: true }
+  );
+  const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM', maxZoom: 19 });
+  let errs = 0;
+  cartoDark.on('tileerror', () => { errs++; if(errs > 3 && map.hasLayer(cartoDark)){ map.removeLayer(cartoDark); osm.addTo(map); }});
+  cartoDark.addTo(map);
+  markers = L.layerGroup().addTo(map);
+  const LC = L.Control.extend({ options:{position:'topleft'}, onAdd:function(){
+    const b = L.DomUtil.create('button','leaflet-bar'); b.innerHTML='🎯'; b.title='Find me';
+    b.style.cssText='width:34px;height:34px;background:#111;color:#00ff88;border:1px solid #333;font-size:16px;cursor:pointer;border-radius:6px';
+    L.DomEvent.on(b,'click',e=>{ L.DomEvent.stop(e); requestLocation(true); }); return b;
+  }});
+  map.addControl(new LC());
+}
+initMap();
+
+function dropUserMarker(lat, lng){
+  if(userMarker) map.removeLayer(userMarker);
+  userMarker = L.marker([lat, lng], {
+    icon: L.divIcon({ className:'', html:`<div style="position:relative;width:26px;height:26px"><div class="user-pulse" style="position:absolute;inset:0;border:3px solid #fff"></div><div style="position:absolute;inset:8px;background:#00ff88;border-radius:50%;border:2px solid #000"></div></div>`, iconSize:[26,26], iconAnchor:[13,13] })
+  }).addTo(map).bindPopup("📍 You are here");
+  userMarker.openPopup();
+}
+function requestLocation(showAlert){
+  if(!navigator.geolocation){ if(showAlert) toast('Location not supported', 'error'); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos => { myLat=pos.coords.latitude; myLng=pos.coords.longitude; hasRealLocation=true;
+      map.setView([myLat,myLng], 15); dropUserMarker(myLat,myLng);
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${myLat}&lon=${myLng}`).then(r=>r.json()).then(d=>{ myLocationName=d.address?.suburb||d.address?.neighbourhood||d.address?.city||"Lagos"; }).catch(()=>{});
+    },
+    err => { if(showAlert){ const m = err.code===1?'Permission denied':err.code===2?'GPS unavailable':'Timed out'; toast(m, 'error', 4000); } },
+    { enableHighAccuracy:true, timeout:15000, maximumAge:60000 }
+  );
+}
+requestLocation(false);
+
+/* ================= CONNECTION ================= */
+function checkConnection(){ document.getElementById('netLost').classList.toggle('show', !navigator.onLine); }
+window.addEventListener('online', checkConnection); window.addEventListener('offline', checkConnection); checkConnection();
+
+/* ================= NAV ================= */
+function switchTab(t){
+  document.querySelectorAll('.map-side').forEach(e => e.classList.remove('active'));
+  document.getElementById('feedPanel').style.display = 'none';
+  document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+  if(t === 'map'){ document.getElementById('mapPanel').classList.add('active'); document.getElementById('nav-map').classList.add('active'); setTimeout(()=>map.invalidateSize(), 200); }
+  if(t === 'feed'){ document.getElementById('feedPanel').style.display = 'block'; document.getElementById('nav-feed').classList.add('active'); }
+  if(t === 'live'){ document.getElementById('livePanel').classList.add('active'); document.getElementById('nav-live').classList.add('active'); loadLiveStreams(); }
+  if(t === 'trend'){ document.getElementById('trendPanel').classList.add('active'); }
+}
+function showFeed(){ closeProfile(); closeChatList(); closeChat(); switchTab('feed'); }
+function toggleCreate(){
+  const box = document.getElementById('createBox');
+  box.classList.toggle('show');
+  if(box.classList.contains('show')) switchTab('feed');
+}
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+
+/* ================= AUTH ================= */
+let authMode = 'login';
+function openAuth(){
+  if(currentUser){ openAccount(); return; }
+  setAuthMode('login'); openModal('authModal');
+  setTimeout(()=>document.getElementById('email').focus(), 80);
+}
+function openAccount(){
+  if(!currentUser) return openAuth();
+  const label = currentUser.displayName || currentUser.email || 'U';
+  document.getElementById('acctAvatar').innerHTML = currentUser.photoURL ? `<img src="${currentUser.photoURL}" alt="">` : label[0].toUpperCase();
+  document.getElementById('acctName').innerText = currentUser.displayName || 'Delaj user';
+  document.getElementById('acctEmail').innerText = currentUser.email || '';
+  document.getElementById('acctCoins').innerText = myCoins;
+  db.collection('users').doc(currentUser.uid).get().then(d => {
+    document.getElementById('acctCoinsEarned').innerText = (d.data() || {}).coinsEarned || 0;
+  }).catch(()=>{});
+  openModal('accountModal');
+}
+async function signOutUser(){
+  try{
+    if(isBroadcaster) await endLive();
+    await auth.signOut(); toast('Signed out', 'success');
+    closeModal('accountModal'); closeProfile(); closeChatList(); closeChat(); leaveLive();
+  }catch(e){ toast(e.message, 'error'); }
+}
+function setAuthMode(mode){
+  authMode = mode;
+  const s = mode === 'signup';
+  document.getElementById('tabLogin').classList.toggle('active', !s);
+  document.getElementById('tabSignup').classList.toggle('active', s);
+  document.getElementById('nameField').style.display = s ? 'block' : 'none';
+  document.getElementById('confirmField').style.display = s ? 'block' : 'none';
+  document.getElementById('forgotBtn').style.display = s ? 'none' : 'block';
+  document.getElementById('authTitle').innerText = s ? 'Create your account' : 'Welcome back';
+  document.getElementById('authSub').innerText = s ? 'Pick a username and start posting' : 'Log in to post, watch live, and send gifts';
+  document.getElementById('authSubmit').innerText = s ? 'Sign Up' : 'Log In';
+  showAuthError('');
+}
+function showAuthError(m){ const el = document.getElementById('authError'); el.innerText = m || ''; el.style.display = m ? 'block' : 'none'; }
+function setAuthBusy(b, l){ const el = document.getElementById('authSubmit'); el.disabled = b; el.innerText = b ? (l || 'Please wait...') : (authMode === 'signup' ? 'Sign Up' : 'Log In'); }
+function friendlyAuthError(err){
+  const c = (err && err.code) || '';
+  const m = { 'auth/invalid-email':'Invalid email.', 'auth/missing-password':'Enter password.', 'auth/wrong-password':'Wrong email or password.', 'auth/invalid-credential':'Wrong email or password.', 'auth/invalid-login-credentials':'Wrong email or password.', 'auth/user-not-found':'No account. Switch to Sign Up.', 'auth/email-already-in-use':'Email taken. Switch to Log In.', 'auth/weak-password':'Password too weak (min 6 chars).', 'auth/too-many-requests':'Too many attempts. Wait a bit.', 'auth/network-request-failed':'Network problem.', 'auth/operation-not-allowed':'Email sign-in disabled in Firebase.', 'auth/unauthorized-domain':'Domain not authorised in Firebase.' };
+  return m[c] || (err && err.message) || 'Something went wrong.';
+}
+async function submitAuth(){
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  const pass = document.getElementById('password').value;
+  const name = document.getElementById('displayName').value.trim();
+  const pass2 = document.getElementById('password2').value;
+  showAuthError('');
+  if(!email) return showAuthError('Enter your email.');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showAuthError('Invalid email.');
+  if(!pass || pass.length < 6) return showAuthError('Password must be at least 6 characters.');
+  if(authMode === 'signup'){
+    if(!name || name.length < 3) return showAuthError('Username must be at least 3 characters.');
+    if(!/^[a-zA-Z0-9_.]+$/.test(name)) return showAuthError('Only letters, numbers, _ and . allowed.');
+    if(pass !== pass2) return showAuthError('Passwords do not match.');
+  }
+  setAuthBusy(true, authMode === 'signup' ? 'Creating...' : 'Logging in...');
+  try{
+    if(authMode === 'signup'){
+      const cred = await auth.createUserWithEmailAndPassword(email, pass);
+      try{ await cred.user.updateProfile({ displayName: name }); }catch(e){}
+      await db.collection('users').doc(cred.user.uid).set({ username: name, email, coins: 50, coinsEarned: 0, coinsSpent: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      toast('Welcome! You got 50 free coins 🎁', 'success', 5000);
+    } else {
+      await auth.signInWithEmailAndPassword(email, pass);
+      toast('Welcome back!', 'success');
+    }
+    ['email','password','password2','displayName'].forEach(id => document.getElementById(id).value = '');
+    closeModal('authModal');
+  }catch(err){ showAuthError(friendlyAuthError(err)); if(err.code === 'auth/email-already-in-use') setTimeout(()=>setAuthMode('login'), 1200); }
+  finally{ setAuthBusy(false); }
+}
+async function resetPassword(){
+  const email = document.getElementById('email').value.trim().toLowerCase();
+  if(!email) return showAuthError('Type your email above first.');
+  setAuthBusy(true, 'Sending...');
+  try{ await auth.sendPasswordResetEmail(email); showAuthError(''); toast('Reset link sent to ' + email, 'success', 5000); }
+  catch(err){ showAuthError(friendlyAuthError(err)); }
+  finally{ setAuthBusy(false); }
+}
+async function editUsername(){
+  const cur = currentUser.displayName || '';
+  const next = prompt('New username:', cur);
+  if(!next || next === cur) return;
+  if(next.length < 3 || !/^[a-zA-Z0-9_.]+$/.test(next)) return toast('Invalid username', 'error');
+  try{
+    await currentUser.updateProfile({ displayName: next });
+    await db.collection('users').doc(currentUser.uid).set({ username: next }, { merge: true });
+    const snap = await db.collection('posts').where('userId','==',currentUser.uid).get();
+    if(!snap.empty){ const batch = db.batch(); snap.forEach(d => batch.update(d.ref, { username: next })); await batch.commit(); }
+    toast('Username updated ✅', 'success');
+    if(viewingProfileUserId === currentUser.uid) openProfile(currentUser.uid);
+    else openAccount();
+  }catch(e){ toast(e.message, 'error'); }
+}
+
+/* ================= AVATAR UPLOAD ================= */
+async function handleAvatarUpload(e){
+  const file = e.target.files[0]; e.target.value = '';
+  if(!file) return;
+  if(!currentUser){ openAuth(); return; }
+  if(!navigator.onLine) return toast('You are offline', 'error');
+  if(file.size > 8*1024*1024) return toast('Image too big (max 8MB)', 'error');
+  try{
+    document.getElementById('acctAvatar').innerHTML = '<span class="spinner"></span>';
+    const img = document.createElement('img'); img.src = URL.createObjectURL(file);
+    await new Promise(r => { img.onload = r; img.onerror = r; });
+    const canvas = document.createElement('canvas');
+    const scale = Math.min(1, 400 / Math.max(img.width, img.height));
+    canvas.width = Math.round(img.width * scale); canvas.height = Math.round(img.height * scale);
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.85));
+    const ref = storage.ref(`avatars/${currentUser.uid}_${Date.now()}.jpg`);
+    await ref.put(blob);
+    const photoURL = await ref.getDownloadURL();
+    await db.collection('users').doc(currentUser.uid).set({ photoURL }, { merge: true });
+    await currentUser.updateProfile({ photoURL });
+    const snap = await db.collection('posts').where('userId','==',currentUser.uid).get();
+    if(!snap.empty){ const batch = db.batch(); snap.forEach(d => batch.update(d.ref, { photoURL })); await batch.commit(); }
+    toast('Profile picture updated ✅', 'success');
+    openAccount(); renderFeed(currentFeedList);
+    if(viewingProfileUserId === currentUser.uid) openProfile(currentUser.uid);
+  }catch(err){ console.error(err); toast('Upload failed: ' + err.message, 'error'); openAccount(); }
+}
+
+/* ================= AUTH STATE ================= */
+auth.onAuthStateChanged(u => {
+  currentUser = u;
+  myLikes = new Set(); mySaves = new Set(); myFollows = new Set(); myCoins = 0;
+  [likesUnsub, savesUnsub, followsUnsub, chatBadgeUnsub, coinsUnsub].forEach(fn => { if(fn) try{fn();}catch(e){} });
+  likesUnsub = savesUnsub = followsUnsub = chatBadgeUnsub = coinsUnsub = null;
+  const area = document.getElementById('userArea');
+  const chatTopBtn = document.getElementById('chatTopBtn');
+  const coinTopBtn = document.getElementById('coinTopBtn');
+  if(u){
+    const label = u.displayName || u.email || 'U';
+    area.innerHTML = `<button class="icon-btn" style="background:${u.photoURL?'transparent':'#00ff88'};color:#000;font-weight:900;padding:0;overflow:hidden" onclick="openAccount()">${u.photoURL?`<img src="${u.photoURL}" style="width:100%;height:100%;object-fit:cover">`:label[0].toUpperCase()}</button>`;
+    chatTopBtn.style.display = 'flex';
+    coinTopBtn.style.display = 'flex';
+    closeModal('authModal');
+    likesUnsub = db.collection('likes').where('userId','==',u.uid).onSnapshot(s => { myLikes = new Set(s.docs.map(d => d.data().postId)); renderFeed(currentFeedList); }, ()=>{});
+    savesUnsub = db.collection('saves').where('userId','==',u.uid).onSnapshot(s => { mySaves = new Set(s.docs.map(d => d.data().postId)); renderFeed(currentFeedList); }, ()=>{});
+    followsUnsub = db.collection('follows').where('followerId','==',u.uid).onSnapshot(s => { myFollows = new Set(s.docs.map(d => d.data().followingId)); }, ()=>{});
+    coinsUnsub = db.collection('users').doc(u.uid).onSnapshot(d => {
+      myCoins = (d.data() || {}).coins || 0;
+      document.getElementById('coinTopAmount').innerText = myCoins;
+      const shopBal = document.getElementById('coinShopBalance'); if(shopBal) shopBal.innerText = myCoins;
+      const giftBal = document.getElementById('giftPickerBalance'); if(giftBal) giftBal.innerText = myCoins;
+      const gLiveBal = document.getElementById('goLiveCoins'); if(gLiveBal) gLiveBal.innerText = myCoins;
+    }, ()=>{});
+    chatBadgeUnsub = db.collection('chats').where('participants','array-contains',u.uid).onSnapshot(s => {
+      let total = 0;
+      s.forEach(d => { total += ((d.data().unread || {})[u.uid]) || 0; });
+      const txt = total > 99 ? '99+' : String(total);
+      const tb = document.getElementById('chatTopBadge'); const nb = document.getElementById('chatNavBadge');
+      if(total > 0){ tb.innerText = txt; tb.style.display = 'flex'; nb.innerText = txt; nb.style.display = 'flex'; }
+      else { tb.style.display = 'none'; nb.style.display = 'none'; }
+    }, ()=>{});
+  } else {
+    area.innerHTML = `<button class="icon-btn" onclick="openAuth()">👤</button>`;
+    chatTopBtn.style.display = 'none'; coinTopBtn.style.display = 'none';
+    closeModal('accountModal'); renderFeed(currentFeedList);
+  }
+});
+
+/* ================= MEDIA ================= */
+async function previewMedia(){
+  const file = document.getElementById('photoInput').files[0]; if(!file) return;
+  if(file.type.startsWith('video/')){
+    if(file.size > 20*1024*1024) return toast('Video too big (max 20MB)', 'error');
+    selectedType = 'video'; selectedFile = file;
+    const v = document.getElementById('videoPreview'); v.src = URL.createObjectURL(file); v.style.display = 'block';
+    document.getElementById('photoPreview').style.display = 'none';
+    document.getElementById('mediaInfo').innerText = `🎥 ${(file.size/1024/1024).toFixed(1)}MB`;
+    v.onloadedmetadata = () => { if(v.duration > 35){ toast('Max 30 seconds', 'error'); selectedFile = null; v.style.display = 'none'; document.getElementById('mediaInfo').innerText = ''; }};
+  } else {
+    selectedType = 'image';
+    const img = document.createElement('img'); img.src = URL.createObjectURL(file);
+    await new Promise(r => img.onload = r);
+    const canvas = document.createElement('canvas');
+    const scale = Math.min(1, 800 / img.width);
+    canvas.width = img.width*scale; canvas.height = img.height*scale;
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.7));
+    selectedFile = blob;
+    document.getElementById('photoPreview').src = URL.createObjectURL(blob);
+    document.getElementById('photoPreview').style.display = 'block';
+    document.getElementById('videoPreview').style.display = 'none';
+    document.getElementById('mediaInfo').innerText = '📷 Compressed';
+  }
+}
+async function uploadToStorage(file){
+  const ref = storage.ref(`posts/${Date.now()}_${file.name || 'video'}`);
+  await ref.put(file);
+  return ref.getDownloadURL();
+}
+
+/* ================= POSTS ================= */
+db.collection("posts").orderBy("timestamp", "desc").limit(200).onSnapshot(snap => {
+  const newPosts = []; markers.clearLayers();
+  snap.forEach(doc => {
+    const d = doc.data(); d.id = doc.id; newPosts.push(d);
+    if(typeof d.lat === 'number' && typeof d.lng === 'number'){
+      L.marker([d.lat, d.lng]).addTo(markers).bindPopup(`<b>${escapeHtml(d.locationName)}</b><br>${escapeHtml((d.text||'').slice(0,30))}`);
+    }
+  });
+  allPosts = newPosts; applyFilter(); renderTrending();
+  if(viewingProfileUserId) loadProfile(viewingProfileUserId);
+  if(!deepLinkHandled){ deepLinkHandled = true; handleDeepLink(); }
+}, ()=>{});
+async function createPost(){
+  if(!currentUser){ openAuth(); return; }
+  if(!navigator.onLine) return toast('You are offline', 'error');
+  const text = document.getElementById('postText').value.trim();
+  const custom = document.getElementById('customLoc').value.trim();
+  if(!text && !selectedFile) return toast('Write or add media', 'error');
+  const btn = document.getElementById('btnPostNow'); btn.disabled = true; btn.innerText = 'Posting...';
+  document.getElementById('uploadStatus').style.display = 'block';
+  document.getElementById('uploadStatus').innerHTML = '<span class="spinner"></span> Uploading...';
+  let photoUrl = '', videoUrl = '', mediaType = '';
+  try{
+    if(selectedFile){
+      if(selectedType === 'video'){ videoUrl = await uploadToStorage(selectedFile); mediaType = 'video'; }
+      else { const r = storage.ref(`posts/${Date.now()}.jpg`); await r.put(selectedFile); photoUrl = await r.getDownloadURL(); mediaType = 'image'; }
+    }
+    await db.collection("posts").add({
+      text, locationName: custom||myLocationName, lat:myLat, lng:myLng, photoUrl, videoUrl, mediaType,
+      user: currentUser.email, userId: currentUser.uid,
+      username: currentUser.displayName || currentUser.email.split('@')[0],
+      userPhotoURL: currentUser.photoURL || '',
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      views:0, likes:0, comments:0, shares:0, pinnedUntil:null
+    });
+    resetCreateForm(); toast('Posted! 🎉','success');
+  }catch(e){ toast(e.message, 'error', 5000); }
+  finally{ btn.disabled = false; btn.innerText = 'Post Now'; document.getElementById('uploadStatus').style.display = 'none'; }
+}
+function resetCreateForm(){
+  ['postText','customLoc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('photoPreview').style.display = 'none';
+  document.getElementById('videoPreview').style.display = 'none';
+  selectedFile = null; selectedType = null;
+  document.getElementById('photoInput').value = '';
+  document.getElementById('mediaInfo').innerText = '';
+  document.getElementById('uploadStatus').style.display = 'none';
+  toggleCreate(); switchTab('feed');
+}
+async function deletePost(id){
+  if(!currentUser) return;
+  if(!confirm('Delete this post?')) return;
+  try{ await db.collection('posts').doc(id).delete(); toast('Deleted', 'success'); if(viewingProfileUserId) loadProfile(viewingProfileUserId); }
+  catch(e){ toast(e.message, 'error'); }
+}
+
+/* ================= FEED FILTERS ================= */
+function applyFilter(){
+  let list = allPosts;
+  if(currentFilter === 'near'){ list = list.filter(p => { if(!p.lat) return false; const d = Math.sqrt(Math.pow(p.lat-myLat,2)+Math.pow(p.lng-myLng,2))*111; return d <= 5; }); }
+  else if(currentFilter === 'saved'){ list = list.filter(p => mySaves.has(p.id)); }
+  if(searchTerm){ const q = searchTerm.toLowerCase(); list = list.filter(p => (p.text||'').toLowerCase().includes(q) || (p.locationName||'').toLowerCase().includes(q) || (p.username||'').toLowerCase().includes(q) || (p.user||'').toLowerCase().includes(q)); }
+  renderFeed(list);
+}
+function renderFeed(list){
+  currentFeedList = list;
+  const c = document.getElementById('posts');
+  if(!list.length){
+    if(currentFilter === 'saved') c.innerHTML = '<div class="empty-state"><h3>No saved posts</h3><p>Tap 📑 to save a post</p></div>';
+    else if(searchTerm) c.innerHTML = '<div class="empty-state"><h3>No results</h3></div>';
+    else c.innerHTML = '<div class="empty-state"><h3>No posts yet</h3><p>Be first to post!</p></div>';
+    return;
+  }
+  const sorted = [...list].sort((a,b) => {
+    const ap = a.pinnedUntil && timestampDate(a.pinnedUntil) > new Date() ? 1 : 0;
+    const bp = b.pinnedUntil && timestampDate(b.pinnedUntil) > new Date() ? 1 : 0;
+    return bp - ap;
+  });
+  c.innerHTML = sorted.map(p => {
+    const isPinned = p.pinnedUntil && timestampDate(p.pinnedUntil) > new Date();
+    const liked = myLikes.has(p.id), saved = mySaves.has(p.id);
+    const time = p.timestamp ? timeAgo(timestampDate(p.timestamp)) : 'now';
+    const isMine = p.userId === currentUser?.uid;
+    const username = p.username || (p.user||'user').split('@')[0];
+    const photo = p.userPhotoURL || '';
+    const likesCount = p.likes || 0;
+    return `<div class="post-card ${isPinned?'pin-card':''}" id="post-${p.id}" data-id="${p.id}">
+      <div class="post-head">
+        <div onclick="openProfile('${p.userId}')">${avatarHtml(photo, username)}</div>
+        <div class="post-user">
+          <div class="name" onclick="openProfile('${p.userId}')">${escapeHtml(username)}</div>
+          <div class="meta">${time}</div>
+        </div>
+        ${isMine ? `<button class="post-menu" onclick="deletePost('${p.id}')">🗑️</button>` : ''}
+      </div>
+      ${p.videoUrl ? `<div class="post-media" ondblclick="doubleTapLike('${p.id}', event)"><video src="${p.videoUrl}" controls playsinline preload="metadata"></video>${isPinned?`<span class="pinned-tag">📌</span>`:''}</div>`
+        : p.photoUrl ? `<div class="post-media" ondblclick="doubleTapLike('${p.id}', event)"><img src="${p.photoUrl}" loading="lazy" alt="">${isPinned?`<span class="pinned-tag">📌</span>`:''}</div>`
+        : `<div class="post-text-only" ondblclick="doubleTapLike('${p.id}', event)">${isPinned?`<span class="pinned-tag">📌</span>`:''}${escapeHtml(p.text || '')}</div>`}
+      <div class="post-info">
+        ${p.photoUrl || p.videoUrl ? (p.text ? `<div class="post-caption">${escapeHtml(p.text)}</div>` : '') : ''}
+        <div class="loc-row" style="margin-top:8px">
+          <span class="loc-pill" onclick="filterByLoc('${escapeAttr(p.locationName)}')">📍 ${escapeHtml(p.locationName)}</span>
+          <span class="time-views">👁️ ${p.views||0}</span>
+        </div>
+        <div class="action-row">
+          <button class="act ${liked?'liked':''}" onclick="likePost('${p.id}')"><span class="heart-icon">${liked?'❤️':'🤍'}</span></button>
+          <button class="act" onclick="openLikers('${p.id}')"><b>${likesCount}</b> ${likesCount === 1 ? 'like' : 'likes'}</button>
+          <button class="act" onclick="toggleComments('${p.id}')">💬 <b id="ccount-${p.id}">${p.comments||0}</b></button>
+          <button class="act ${saved?'saved':''}" onclick="toggleSave('${p.id}')">${saved?'🔖':'📑'}</button>
+          <button class="act" onclick="openShare('${p.id}')">↗️ <b>${p.shares||0}</b></button>
+          ${(isMine && !isPinned) ? `<button class="act pin-btn" onclick="payToPin('${p.id}')">💰 Pin ₦1k</button>` : ''}
+          ${isPinned ? `<span class="pinned-label">Pinned till ${timestampDate(p.pinnedUntil).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>` : ''}
+        </div>
+      </div>
+      <div class="comments-section" id="comments-${p.id}">
+        <div class="comments-inner" id="commentsInner-${p.id}"><div class="comments-empty">Loading…</div></div>
+        <div id="replyIndicator-${p.id}" class="reply-indicator" style="display:none">Replying to <b id="replyName-${p.id}"></b><button class="reply-cancel" onclick="cancelReply('${p.id}')">✕</button></div>
+        <div class="comment-input-row">
+          <input type="text" id="commentInput-${p.id}" placeholder="Add a comment..." maxlength="280" onkeydown="if(event.key==='Enter')addComment('${p.id}')">
+          <button class="comment-send" onclick="addComment('${p.id}')" id="commentSend-${p.id}">➤</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  setupViewObserver();
+}
+function setupViewObserver(){
+  const obs = new IntersectionObserver(ents => ents.forEach(e => { if(e.isIntersecting) setTimeout(()=>countView(e.target.dataset.id), 2000); }), { threshold: 0.6 });
+  document.querySelectorAll('.post-card').forEach(c => obs.observe(c));
+}
+const viewedCache = new Map();
+function getViewedSet(vid){
+  if(!viewedCache.has(vid)){ try{ viewedCache.set(vid, new Set(JSON.parse(localStorage.getItem('viewed_'+vid) || '[]'))); }catch(e){ viewedCache.set(vid, new Set()); } }
+  return viewedCache.get(vid);
+}
+async function countView(postId){
+  const vid = getViewerId(); const set = getViewedSet(vid);
+  if(set.has(postId)) return;
+  set.add(postId);
+  try{ localStorage.setItem('viewed_'+vid, JSON.stringify([...set])); }catch(e){}
+  if(!navigator.onLine) return;
+  const ref = db.collection('postViews').doc(`${postId}_${vid}`);
+  try{
+    await db.runTransaction(async tx => {
+      const v = await tx.get(ref); if(v.exists) return;
+      tx.set(ref, { postId, viewerId: vid, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+      tx.update(db.collection('posts').doc(postId), { views: firebase.firestore.FieldValue.increment(1) });
+    });
+  }catch(e){}
+}
+
+/* ================= LIKES / SAVES ================= */
+async function likePost(id){
+  if(!currentUser){ openAuth(); return; }
+  if(!navigator.onLine) return toast('Offline', 'error');
+  const likeRef = db.collection('likes').doc(`${currentUser.uid}_${id}`);
+  const postRef = db.collection('posts').doc(id);
+  const wasLiked = myLikes.has(id);
+  if(wasLiked) myLikes.delete(id); else myLikes.add(id);
+  renderFeed(currentFeedList);
+  try{
+    await db.runTransaction(async tx => {
+      const likeDoc = await tx.get(likeRef);
+      const postDoc = await tx.get(postRef);
+      if(!postDoc.exists) throw new Error('Post gone');
+      if(likeDoc.exists){ tx.delete(likeRef); tx.update(postRef, { likes: firebase.firestore.FieldValue.increment(-1) }); }
+      else { tx.set(likeRef, { userId: currentUser.uid, postId: id, userEmail: currentUser.email||'', username: currentUser.displayName || currentUser.email.split('@')[0], userPhotoURL: currentUser.photoURL || '', timestamp: firebase.firestore.FieldValue.serverTimestamp() }); tx.update(postRef, { likes: firebase.firestore.FieldValue.increment(1) }); }
+    });
+  }catch(err){ if(wasLiked) myLikes.add(id); else myLikes.delete(id); renderFeed(currentFeedList); toast(err.message, 'error'); }
+}
+function doubleTapLike(id, ev){
+  if(!currentUser){ openAuth(); return; }
+  if(ev.target.tagName === 'VIDEO') return;
+  const rect = ev.currentTarget.getBoundingClientRect();
+  const b = document.createElement('div'); b.className = 'heart-burst'; b.innerText = '❤️';
+  b.style.left = (ev.clientX - rect.left - 32) + 'px'; b.style.top = (ev.clientY - rect.top - 32) + 'px';
+  ev.currentTarget.style.position = 'relative'; ev.currentTarget.appendChild(b);
+  setTimeout(()=>b.remove(), 1000);
+  if(!myLikes.has(id)) likePost(id);
+}
+async function toggleSave(id){
+  if(!currentUser){ openAuth(); return; }
+  if(!navigator.onLine) return toast('Offline', 'error');
+  const ref = db.collection('saves').doc(`${currentUser.uid}_${id}`);
+  const saved = mySaves.has(id);
+  if(saved) mySaves.delete(id); else mySaves.add(id);
+  renderFeed(currentFeedList);
+  try{ if(saved){ await ref.delete(); toast('Unsaved', 'info', 1500); } else { await ref.set({ userId: currentUser.uid, postId: id, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); toast('Saved 🔖', 'success', 1500); } }
+  catch(e){ if(saved) mySaves.add(id); else mySaves.delete(id); renderFeed(currentFeedList); toast(e.message, 'error'); }
+}
+function openLikers(postId){
+  const post = allPosts.find(p => p.id === postId);
+  const count = post ? (post.likes || 0) : 0;
+  document.getElementById('likersTitle').innerHTML = `❤️ ${count} ${count === 1 ? 'Like' : 'Likes'}`;
+  const list = document.getElementById('likersList');
+  list.innerHTML = '<div class="comments-empty">Loading…</div>';
+  openModal('likersModal');
+  if(!navigator.onLine) return list.innerHTML = '<div class="comments-empty">Offline</div>';
+  const unsub = db.collection('likes').where('postId','==', postId).orderBy('timestamp','desc').limit(100).onSnapshot(async snap => {
+    if(snap.empty) return list.innerHTML = '<div class="comments-empty">No likes yet</div>';
+    const uids = [...new Set(snap.docs.map(d => d.data().userId))];
+    const uMap = {};
+    await Promise.all(uids.map(uid => db.collection('users').doc(uid).get().then(doc => { uMap[uid] = doc.exists ? doc.data() : {}; }).catch(()=>{ uMap[uid] = {}; })));
+    list.innerHTML = snap.docs.map(d => {
+      const data = d.data();
+      const u = uMap[data.userId] || {};
+      const name = u.username || data.username || 'User';
+      const email = u.email || data.userEmail || '';
+      const photo = u.photoURL || data.userPhotoURL || '';
+      const you = data.userId === currentUser?.uid ? '<span class="liker-you">You</span>' : '';
+      return `<div class="liker-row" onclick="closeModal('likersModal');openProfile('${data.userId}')">${avatarHtml(photo, name)}<div class="liker-info"><div class="liker-name">${escapeHtml(name)}</div><div class="liker-handle">${email?'@'+escapeHtml(email.split('@')[0]):''}</div></div>${you}</div>`;
+    }).join('');
+  }, ()=>{});
+  likersUnsubs[postId] = unsub;
+}
+
+/* ================= COMMENTS ================= */
+function toggleComments(id){
+  const el = document.getElementById('comments-'+id);
+  const opening = !el.classList.contains('open');
+  el.classList.toggle('open');
+  if(opening && !commentsUnsubs[id]){
+    commentsUnsubs[id] = db.collection('posts').doc(id).collection('comments').orderBy('timestamp','asc').limit(200).onSnapshot(snap => {
+      const inner = document.getElementById('commentsInner-'+id); if(!inner) return;
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const top = docs.filter(c => !c.parentId);
+      const repliesByParent = {};
+      docs.filter(c => c.parentId).forEach(c => { if(!repliesByParent[c.parentId]) repliesByParent[c.parentId] = []; repliesByParent[c.parentId].push(c); });
+      if(!top.length){ inner.innerHTML = '<div class="comments-empty">No comments — be first!</div>'; }
+      else {
+        const render = (c, isReply) => {
+          const mine = c.userId === currentUser?.uid;
+          return `<div class="comment ${isReply?'reply':''}">
+            <div onclick="openProfile('${c.userId}')">${avatarHtml(c.userPhotoURL || '', c.username || 'U', 'sm')}</div>
+            <div class="comment-body">
+              <div class="cname" onclick="openProfile('${c.userId}')">${escapeHtml(c.username || 'user')}</div>
+              <div class="ctext">${escapeHtml(c.text)}</div>
+              <div class="cmeta">
+                <span>${c.timestamp ? timeAgo(timestampDate(c.timestamp)) : 'now'}</span>
+                <button class="cmeta-btn" onclick="startReply('${id}','${isReply?c.parentId:c.id}','${escapeAttr(c.username||'user')}')">Reply</button>
+                ${mine ? `<button class="cmeta-btn comment-del" onclick="deleteComment('${id}','${c.id}','${!!c.parentId}')">Delete</button>` : ''}
+              </div>
+            </div>
+          </div>`;
+        };
+        inner.innerHTML = top.map(c => { let html = render(c, false); const replies = repliesByParent[c.id] || []; if(replies.length) html += replies.map(r => render(r, true)).join(''); return html; }).join('');
+      }
+      const cc = document.getElementById('ccount-'+id); if(cc) cc.innerText = snap.size;
+    }, ()=>{});
+  }
+}
+function startReply(postId, commentId, username){
+  replyingTo = { postId, commentId, username };
+  document.getElementById('replyName-'+postId).innerText = '@' + username;
+  document.getElementById('replyIndicator-'+postId).style.display = 'flex';
+  const input = document.getElementById('commentInput-'+postId);
+  input.placeholder = `Reply to @${username}...`;
+  input.focus();
+}
+function cancelReply(postId){
+  replyingTo = null;
+  const ind = document.getElementById('replyIndicator-'+postId); if(ind) ind.style.display = 'none';
+  const input = document.getElementById('commentInput-'+postId); if(input) input.placeholder = 'Add a comment...';
+}
+async function addComment(postId){
+  if(!currentUser){ openAuth(); return; }
+  if(!navigator.onLine) return toast('Offline', 'error');
+  const input = document.getElementById('commentInput-'+postId);
+  const btn = document.getElementById('commentSend-'+postId);
+  const text = input.value.trim();
+  if(!text) return;
+  btn.disabled = true; input.disabled = true;
+  const parentId = (replyingTo && replyingTo.postId === postId) ? replyingTo.commentId : null;
+  try{
+    await db.collection('posts').doc(postId).collection('comments').add({ text, userId: currentUser.uid, username: currentUser.displayName || currentUser.email.split('@')[0], userPhotoURL: currentUser.photoURL || '', parentId, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+    await db.collection('posts').doc(postId).update({ comments: firebase.firestore.FieldValue.increment(1) });
+    input.value = ''; cancelReply(postId);
+  }catch(e){ toast(e.message, 'error'); }
+  finally{ btn.disabled = false; input.disabled = false; input.focus(); }
+}
+async function deleteComment(postId, cid, isReply){
+  if(!confirm('Delete?')) return;
+  try{
+    if(!isReply){
+      const replies = await db.collection('posts').doc(postId).collection('comments').where('parentId','==',cid).get();
+      const batch = db.batch();
+      replies.forEach(r => batch.delete(r.ref));
+      batch.delete(db.collection('posts').doc(postId).collection('comments').doc(cid));
+      batch.update(db.collection('posts').doc(postId), { comments: firebase.firestore.FieldValue.increment(-(1 + replies.size)) });
+      await batch.commit();
+    } else {
+      await db.collection('posts').doc(postId).collection('comments').doc(cid).delete();
+      await db.collection('posts').doc(postId).update({ comments: firebase.firestore.FieldValue.increment(-1) });
+    }
+    toast('Deleted', 'success', 1500);
+  }catch(e){ toast(e.message, 'error'); }
+}
+
+/* ================= SHARE ================= */
+function openShare(postId){
+  currentSharePostId = postId;
+  document.getElementById('shareLinkBox').innerText = buildPostLink(postId);
+  document.getElementById('copyLinkHint').innerText = 'Tap to copy';
+  openModal('shareModal');
+}
+function buildPostLink(postId){ return `${window.location.origin}${window.location.pathname}?post=${postId}`; }
+async function copyShareLink(){
+  const url = buildPostLink(currentSharePostId);
+  try{ await navigator.clipboard.writeText(url); document.getElementById('copyLinkHint').innerText = '✅ Copied!'; toast('Copied 📋', 'success', 2000); }
+  catch(_){ prompt('Copy:', url); }
+}
+async function nativeShare(){
+  const url = buildPostLink(currentSharePostId);
+  const post = allPosts.find(p => p.id === currentSharePostId);
+  const title = post ? `📍 ${post.locationName} — DELAJ` : 'DELAJ';
+  const text = post ? (post.text || 'Check this on DELAJ') : 'DELAJ';
+  if(navigator.share){ try{ await navigator.share({ title, text, url }); bumpShareCount(currentSharePostId); }catch(_){} }
+  else toast('Not supported', 'info');
+}
+function shareToWhatsApp(){
+  const url = buildPostLink(currentSharePostId);
+  const post = allPosts.find(p => p.id === currentSharePostId);
+  const text = post ? (post.text ? `📍 ${post.locationName}\n"${post.text}"\n\n` : `📍 ${post.locationName}\n\n`) : '';
+  window.open(`https://wa.me/?text=${encodeURIComponent(text + url)}`, '_blank');
+  bumpShareCount(currentSharePostId);
+}
+function shareToTwitter(){
+  const url = buildPostLink(currentSharePostId);
+  const post = allPosts.find(p => p.id === currentSharePostId);
+  const text = post ? `📍 ${post.locationName} on DELAJ` : 'DELAJ';
+  window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+  bumpShareCount(currentSharePostId);
+}
+function bumpShareCount(id){ if(!id) return; db.collection('posts').doc(id).update({ shares: firebase.firestore.FieldValue.increment(1) }).catch(()=>{}); }
+function handleDeepLink(){
+  const postId = new URLSearchParams(window.location.search).get('post'); if(!postId) return;
+  document.getElementById('sharedBanner').innerHTML = `<div style="margin:0 8px 12px;padding:12px 16px;background:linear-gradient(135deg,rgba(0,255,136,.15),rgba(0,180,255,.1));border:1px solid #00ff88;border-radius:14px;display:flex;align-items:center;gap:10px;font-size:13px"><span style="font-size:20px">🔗</span><div style="flex:1"><b style="display:block;font-weight:800">Shared post</b><span style="font-size:11px;color:#888">Tap "Feed" to browse all</span></div></div>`;
+  switchTab('feed');
+  let t = 0;
+  const tick = () => { const el = document.getElementById('post-'+postId); if(el){ el.scrollIntoView({ behavior:'smooth', block:'center' }); el.classList.add('highlighted'); setTimeout(()=>el.classList.remove('highlighted'), 3500); return true; } return false; };
+  if(tick()) return;
+  const iv = setInterval(() => { t++; if(tick() || t > 24) clearInterval(iv); }, 500);
+}
+
+/* ================= SEARCH ================= */
+let searchTimer = null;
+function onSearchInput(){ const v = document.getElementById('searchInput').value; document.getElementById('searchClear').classList.toggle('show', v.length > 0); clearTimeout(searchTimer); searchTimer = setTimeout(()=>{ searchTerm = v.trim(); applyFilter(); }, 250); }
+function clearSearch(){ document.getElementById('searchInput').value = ''; document.getElementById('searchClear').classList.remove('show'); searchTerm = ''; applyFilter(); }
+
+/* ================= TRENDING ================= */
+function renderTrending(){
+  const counts = {}; allPosts.forEach(p => counts[p.locationName] = (counts[p.locationName]||0)+1);
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,15);
+  document.getElementById('trendingList').innerHTML = sorted.map(([loc, num]) => `<div style="background:#111;padding:14px;border-radius:14px;margin-top:8px;display:flex;justify-content:space-between;border:1px solid #1a1a1a;cursor:pointer" onclick="filterByLoc('${escapeAttr(loc)}')"><div><b>📍 ${escapeHtml(loc)}</b><div style="font-size:11px;color:#666;margin-top:2px">${num} posts</div></div><span style="background:#1a1a1a;padding:6px 12px;border-radius:20px;font-size:12px">${num}</span></div>`).join('') || "<p style='color:#555'>No trending yet</p>";
+}
+function setFilter(f){
+  currentFilter = f;
+  document.querySelectorAll('.filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById('f-'+f); if(el) el.classList.add('active');
+  applyFilter();
+}
+function showAllPosts(){ searchTerm=''; const s = document.getElementById('searchInput'); if(s) s.value=''; setFilter('all'); }
+function showSaved(){ setFilter('saved'); }
+function filterByLoc(loc){ switchTab('feed'); searchTerm = loc; document.getElementById('searchInput').value = loc; document.getElementById('searchClear').classList.add('show'); setFilter('all'); }
+function filterNear(){
+  if(!hasRealLocation){ if(confirm('Allow location?')) requestLocation(true); return; }
+  const near = allPosts.filter(p => { if(!p.lat) return false; const d = Math.sqrt(Math.pow(p.lat-myLat,2)+Math.pow(p.lng-myLng,2))*111; return d <= 5; });
+  if(!near.length) return toast('No posts within 5km', 'info');
+  setFilter('near'); switchTab('feed');
+}
+
+/* ================= PROFILE ================= */
+async function openProfile(userId){
+  if(!userId) return;
+  viewingProfileUserId = userId; currentProfileTab = 'posts';
+  document.getElementById('profileScreen').classList.add('show');
+  document.body.style.overflow = 'hidden'; window.scrollTo(0, 0);
+  await loadProfile(userId);
+}
+function closeProfile(){
+  document.getElementById('profileScreen').classList.remove('show');
+  if(!document.getElementById('chatConversation').classList.contains('show') && !document.getElementById('chatListScreen').classList.contains('show') && !document.getElementById('liveScreen').classList.contains('show')) document.body.style.overflow = '';
+  viewingProfileUserId = null;
+}
+async function loadProfile(userId){
+  try{
+    const d = await db.collection('users').doc(userId).get();
+    const data = d.exists ? d.data() : {};
+    let username = data.username || 'Delaj user';
+    let email = data.email || '';
+    let photoURL = data.photoURL || '';
+    let bio = data.bio || '';
+    if(userId === currentUser?.uid){ username = currentUser.displayName || username; email = currentUser.email || email; photoURL = currentUser.photoURL || photoURL; }
+    document.getElementById('profTopTitle').innerText = '@' + (email ? email.split('@')[0] : username);
+    const av = document.getElementById('profAvatar');
+    if(photoURL){ av.innerHTML = `<img src="${photoURL}" alt="">`; av.style.background = 'none'; }
+    else { av.innerText = (username[0] || 'U').toUpperCase(); av.style.background = 'linear-gradient(135deg,#ff2d55,#b400ff)'; }
+    if(userId === currentUser?.uid){ av.classList.add('edit'); av.onclick = () => document.getElementById('avatarUploadInput').click(); }
+    else { av.classList.remove('edit'); av.onclick = null; }
+    document.getElementById('profName').innerText = username;
+    document.getElementById('profHandle').innerText = email ? '@'+email.split('@')[0] : '@user';
+    document.getElementById('profBio').innerText = bio;
+    document.getElementById('profBio').style.display = bio ? 'block' : 'none';
+    const [pS, fS, gS] = await Promise.all([
+      db.collection('posts').where('userId','==',userId).get(),
+      db.collection('follows').where('followingId','==',userId).get(),
+      db.collection('follows').where('followerId','==',userId).get()
+    ]);
+    document.getElementById('profPosts').innerText = pS.size;
+    document.getElementById('profFollowers').innerText = fS.size;
+    document.getElementById('profFollowing').innerText = gS.size;
+    const wrap = document.getElementById('profActionsWrap');
+    if(userId === currentUser?.uid){ wrap.innerHTML = `<button class="prof-msg-btn" onclick="closeProfile();openAccount()">Settings</button>`; }
+    else if(currentUser){
+      const following = myFollows.has(userId);
+      wrap.innerHTML = `<button class="prof-follow-btn ${following?'following':''}" id="profFollowBtn" onclick="toggleFollow('${userId}')">${following?'Following':'Follow'}</button><button class="prof-msg-btn" onclick="closeProfile();openChatWith('${userId}')">Message</button>`;
+    } else { wrap.innerHTML = `<button class="prof-follow-btn" onclick="openAuth()">Follow</button>`; }
+    window._profilePosts = pS.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderProfileTab('posts', window._profilePosts);
+  }catch(e){ console.warn(e); toast('Could not load', 'error'); }
+}
+function switchProfileTab(t){
+  currentProfileTab = t;
+  document.querySelectorAll('.prof-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('ptab-'+t).classList.add('active');
+  if(t === 'posts') renderProfileTab('posts', window._profilePosts || []);
+  else renderProfileLikedTab();
+}
+function renderProfileTab(t, posts){
+  const c = document.getElementById('profTabContent');
+  if(!posts.length){ c.innerHTML = '<div class="empty-state"><h3>No posts yet</h3></div>'; return; }
+  c.innerHTML = `<div class="prof-posts-list"><div class="prof-grid">${posts.map(p => {
+    const media = p.photoUrl ? `<img src="${p.photoUrl}" alt="">` : p.videoUrl ? `<video src="${p.videoUrl}" muted></video>` : `<span class="tile-text">${escapeHtml((p.text||'').slice(0,60))}</span>`;
+    return `<div class="prof-tile" onclick="closeProfile();scrollToPost('${p.id}')">${media}<span class="tile-badge">❤️ ${p.likes||0}</span></div>`;
+  }).join('')}</div></div>`;
+}
+async function renderProfileLikedTab(){
+  const c = document.getElementById('profTabContent');
+  if(!currentUser) return c.innerHTML = '<div class="empty-state"><h3>Sign in required</h3></div>';
+  if(viewingProfileUserId !== currentUser.uid) return c.innerHTML = '<div class="empty-state"><h3>Private</h3></div>';
+  c.innerHTML = '<div style="padding:40px;text-align:center"><span class="spinner"></span></div>';
+  try{
+    const s = await db.collection('likes').where('userId','==',currentUser.uid).orderBy('timestamp','desc').limit(60).get();
+    if(s.empty) return c.innerHTML = '<div class="empty-state"><h3>No likes yet</h3></div>';
+    const posts = [];
+    s.forEach(d => { const p = allPosts.find(x => x.id === d.data().postId); if(p) posts.push(p); });
+    if(!posts.length) return c.innerHTML = '<div class="empty-state"><h3>No liked posts</h3></div>';
+    c.innerHTML = `<div class="prof-posts-list"><div class="prof-grid">${posts.map(p => {
+      const media = p.photoUrl ? `<img src="${p.photoUrl}" alt="">` : p.videoUrl ? `<video src="${p.videoUrl}" muted></video>` : `<span class="tile-text">${escapeHtml((p.text||'').slice(0,60))}</span>`;
+      return `<div class="prof-tile" onclick="closeProfile();scrollToPost('${p.id}')">${media}</div>`;
+    }).join('')}</div></div>`;
+  }catch(e){ c.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`; }
+}
+function scrollToPost(id){
+  switchTab('feed'); setFilter('all');
+  let t = 0;
+  const tick = () => { const el = document.getElementById('post-'+id); if(el){ el.scrollIntoView({ behavior:'smooth', block:'center' }); el.classList.add('highlighted'); setTimeout(()=>el.classList.remove('highlighted'), 3500); return true; } return false; };
+  if(tick()) return;
+  const iv = setInterval(() => { t++; if(tick() || t > 24) clearInterval(iv); }, 500);
+}
+async function toggleFollow(userId){
+  if(!currentUser){ openAuth(); return; }
+  if(userId === currentUser.uid) return;
+  if(!navigator.onLine) return toast('Offline', 'error');
+  const ref = db.collection('follows').doc(`${currentUser.uid}_${userId}`);
+  const following = myFollows.has(userId);
+  const btn = document.getElementById('profFollowBtn'); if(btn) btn.disabled = true;
+  try{
+    if(following){ await ref.delete(); myFollows.delete(userId); toast('Unfollowed', 'info', 1500); }
+    else { await ref.set({ followerId: currentUser.uid, followingId: userId, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); myFollows.add(userId); toast('Following ✅', 'success', 1500); }
+    const f = await db.collection('follows').where('followingId','==',userId).get();
+    document.getElementById('profFollowers').innerText = f.size;
+    if(btn){ const nf = myFollows.has(userId); btn.className = `prof-follow-btn ${nf?'following':''}`; btn.innerText = nf ? 'Following' : 'Follow'; }
+  }catch(e){ toast(e.message, 'error'); }
+  finally{ if(btn) btn.disabled = false; }
+}
+
+/* ================= USER LISTS ================= */
+async function openFollowersList(){
+  if(!viewingProfileUserId) return;
+  openModal('userListModal');
+  document.getElementById('userListTitle').innerText = 'Followers';
+  document.getElementById('userListSub').innerText = 'People following this account';
+  const body = document.getElementById('userListBody');
+  body.innerHTML = '<div style="padding:40px;text-align:center"><span class="spinner"></span></div>';
+  try{
+    const s = await db.collection('follows').where('followingId','==',viewingProfileUserId).limit(200).get();
+    if(s.empty) return body.innerHTML = '<div style="padding:40px;text-align:center;color:#555">No followers yet</div>';
+    const uids = s.docs.map(d => d.data().followerId);
+    const uMap = {};
+    await Promise.all(uids.map(uid => db.collection('users').doc(uid).get().then(doc => { uMap[uid] = doc.exists ? doc.data() : {}; }).catch(()=>{ uMap[uid] = {}; })));
+    body.innerHTML = uids.map(uid => {
+      const u = uMap[uid] || {};
+      const name = u.username || 'User';
+      const email = u.email || '';
+      const photo = u.photoURL || '';
+      const following = myFollows.has(uid);
+      const self = uid === currentUser?.uid;
+      return `<div class="user-list-row" onclick="closeModal('userListModal');openProfile('${uid}')">${avatarHtml(photo, name)}<div class="ul-info"><div class="ul-name">${escapeHtml(name)}</div><div class="ul-handle">${email?'@'+escapeHtml(email.split('@')[0]):''}</div></div>${!self && currentUser ? `<button class="ul-follow-btn ${following?'following':''}" onclick="event.stopPropagation();toggleFollowFromList('${uid}',this)">${following?'Following':'Follow'}</button>` : ''}</div>`;
+    }).join('');
+  }catch(e){ body.innerHTML = `<div style="padding:40px;text-align:center;color:#ff6b7f">${escapeHtml(e.message)}</div>`; }
+}
+async function openFollowingList(){
+  if(!viewingProfileUserId) return;
+  openModal('userListModal');
+  document.getElementById('userListTitle').innerText = 'Following';
+  document.getElementById('userListSub').innerText = 'Accounts this user follows';
+  const body = document.getElementById('userListBody');
+  body.innerHTML = '<div style="padding:40px;text-align:center"><span class="spinner"></span></div>';
+  try{
+    const s = await db.collection('follows').where('followerId','==',viewingProfileUserId).limit(200).get();
+    if(s.empty) return body.innerHTML = '<div style="padding:40px;text-align:center;color:#555">Not following anyone yet</div>';
+    const uids = s.docs.map(d => d.data().followingId);
+    const uMap = {};
+    await Promise.all(uids.map(uid => db.collection('users').doc(uid).get().then(doc => { uMap[uid] = doc.exists ? doc.data() : {}; }).catch(()=>{ uMap[uid] = {}; })));
+    body.innerHTML = uids.map(uid => {
+      const u = uMap[uid] || {};
+      const name = u.username || 'User';
+      const email = u.email || '';
+      const photo = u.photoURL || '';
+      const following = myFollows.has(uid);
+      const self = uid === currentUser?.uid;
+      return `<div class="user-list-row" onclick="closeModal('userListModal');openProfile('${uid}')">${avatarHtml(photo, name)}<div class="ul-info"><div class="ul-name">${escapeHtml(name)}</div><div class="ul-handle">${email?'@'+escapeHtml(email.split('@')[0]):''}</div></div>${!self && currentUser ? `<button class="ul-follow-btn ${following?'following':''}" onclick="event.stopPropagation();toggleFollowFromList('${uid}',this)">${following?'Following':'Follow'}</button>` : ''}</div>`;
+    }).join('');
+  }catch(e){ body.innerHTML = `<div style="padding:40px;text-align:center;color:#ff6b7f">${escapeHtml(e.message)}</div>`; }
+}
+async function toggleFollowFromList(uid, btn){
+  if(!currentUser){ openAuth(); return; }
+  if(!navigator.onLine) return toast('Offline', 'error');
+  const ref = db.collection('follows').doc(`${currentUser.uid}_${uid}`);
+  const following = myFollows.has(uid);
+  btn.disabled = true;
+  try{
+    if(following){ await ref.delete(); myFollows.delete(uid); btn.className = 'ul-follow-btn'; btn.innerText = 'Follow'; }
+    else { await ref.set({ followerId: currentUser.uid, followingId: uid, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); myFollows.add(uid); btn.className = 'ul-follow-btn following'; btn.innerText = 'Following'; }
+  }catch(e){ toast(e.message, 'error'); }
+  finally{ btn.disabled = false; }
+}
+
+/* ================= CHAT ================= */
+function openChatList(){
+  if(!currentUser){ openAuth(); return; }
+  document.getElementById('chatListScreen').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  loadChatList();
+}
+function closeChatList(){
+  document.getElementById('chatListScreen').classList.remove('show');
+  if(!document.getElementById('profileScreen').classList.contains('show') && !document.getElementById('chatConversation').classList.contains('show') && !document.getElementById('liveScreen').classList.contains('show')) document.body.style.overflow = '';
+}
+async function loadChatList(){
+  const list = document.getElementById('chatListBody');
+  list.innerHTML = '<div style="padding:60px;text-align:center"><span class="spinner"></span></div>';
+  if(!navigator.onLine) return list.innerHTML = '<div class="empty-state"><h3>Offline</h3></div>';
+  try{
+    const s = await db.collection('chats').where('participants','array-contains',currentUser.uid).orderBy('lastMessageTime','desc').limit(100).get();
+    if(s.empty) return list.innerHTML = '<div class="empty-state" style="padding:80px 20px"><div style="font-size:48px;margin-bottom:12px">💬</div><h3>No messages yet</h3><p>Start from someone\'s profile.</p></div>';
+    const chats = s.docs.map(d => ({ id: d.id, ...d.data() }));
+    const others = [...new Set(chats.map(c => c.participants.find(p => p !== currentUser.uid)))];
+    const uMap = {};
+    await Promise.all(others.map(uid => db.collection('users').doc(uid).get().then(doc => { uMap[uid] = doc.exists ? doc.data() : {}; }).catch(()=>{ uMap[uid] = {}; })));
+    list.innerHTML = chats.map(c => {
+      const other = c.participants.find(p => p !== currentUser.uid);
+      const u = uMap[other] || {};
+      const name = u.username || 'User';
+      const photo = u.photoURL || '';
+      const unread = (c.unread && c.unread[currentUser.uid]) || 0;
+      const time = c.lastMessageTime ? timeAgo(timestampDate(c.lastMessageTime)) : '';
+      return `<div class="chat-list-row" onclick="openChatFromList('${c.id}','${other}')">${avatarHtml(photo, name)}<div class="chat-list-info"><div class="chat-list-name">${escapeHtml(name)}</div><div class="chat-list-msg">${escapeHtml(c.lastMessage || 'Say hi!')}</div></div><div class="chat-list-meta"><div class="chat-list-time">${time}</div>${unread > 0 ? `<div class="chat-list-unread">${unread>99?'99+':unread}</div>` : ''}</div></div>`;
+    }).join('');
+  }catch(e){ list.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`; }
+}
+function openChatFromList(cid, oid){ closeChatList(); openChatScreen(cid, oid); }
+async function openChatWith(uid){
+  if(!currentUser){ openAuth(); return; }
+  if(uid === currentUser.uid) return toast('Cannot chat with yourself', 'info');
+  if(!navigator.onLine) return toast('Offline', 'error');
+  const cid = [currentUser.uid, uid].sort().join('_');
+  const ref = db.collection('chats').doc(cid);
+  try{
+    const d = await ref.get();
+    if(!d.exists) await ref.set({ participants: [currentUser.uid, uid].sort(), lastMessage: '', lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(), unread: { [currentUser.uid]:0, [uid]:0 } });
+    openChatScreen(cid, uid);
+  }catch(e){ toast(e.message, 'error'); }
+}
+async function openChatScreen(cid, oid){
+  closeProfile(); closeChatList();
+  currentChatId = cid; currentChatPartnerId = oid;
+  document.getElementById('chatConversation').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  try{
+    const d = await db.collection('users').doc(oid).get();
+    const data = d.exists ? d.data() : {};
+    const name = data.username || 'User';
+    const email = data.email || '';
+    const photo = data.photoURL || '';
+    document.getElementById('chatHeaderAvatar').innerHTML = photo ? `<img src="${photo}" alt="">` : name[0].toUpperCase();
+    document.getElementById('chatHeaderAvatar').style.background = photo ? 'none' : 'linear-gradient(135deg,#00ff88,#00b4ff)';
+    document.getElementById('chatHeaderName').innerText = name;
+    document.getElementById('chatHeaderHandle').innerText = email ? '@'+email.split('@')[0] : '';
+  }catch(e){}
+  if(currentChatUnsub){ currentChatUnsub(); currentChatUnsub = null; }
+  const me = document.getElementById('chatMessages');
+  me.innerHTML = '<div style="padding:40px;text-align:center"><span class="spinner"></span></div>';
+  currentChatUnsub = db.collection('chats').doc(cid).collection('messages').orderBy('timestamp','asc').limit(200).onSnapshot(s => {
+    if(s.empty) return me.innerHTML = '<div class="empty-state" style="margin:auto"><div style="font-size:40px;margin-bottom:8px">👋</div><p>No messages yet</p></div>';
+    me.innerHTML = s.docs.map(d => {
+      const m = d.data(); const mine = m.senderId === currentUser.uid;
+      return `<div class="chat-bubble-row ${mine?'mine':''}"><div class="chat-bubble">${escapeHtml(m.text)}</div><div class="chat-bubble-time">${m.timestamp ? timeAgo(timestampDate(m.timestamp)) : ''}</div></div>`;
+    }).join('');
+    me.scrollTop = me.scrollHeight;
+  }, ()=>{});
+  try{ await db.collection('chats').doc(cid).update({ [`unread.${currentUser.uid}`]: 0 }); }catch(e){}
+}
+function closeChat(){
+  if(currentChatUnsub){ currentChatUnsub(); currentChatUnsub = null; }
+  document.getElementById('chatConversation').classList.remove('show');
+  currentChatId = null; currentChatPartnerId = null;
+  if(!document.getElementById('profileScreen').classList.contains('show') && !document.getElementById('chatListScreen').classList.contains('show') && !document.getElementById('liveScreen').classList.contains('show')) document.body.style.overflow = '';
+}
+async function sendChatMessage(){
+  if(!currentUser){ openAuth(); return; }
+  if(!currentChatId) return;
+  if(!navigator.onLine) return toast('Offline', 'error');
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = '';
+  try{
+    const ref = db.collection('chats').doc(currentChatId);
+    const d = await ref.get();
+    if(!d.exists) return;
+    const other = d.data().participants.find(p => p !== currentUser.uid);
+    await ref.collection('messages').add({ text, senderId: currentUser.uid, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+    await ref.update({ lastMessage: text.slice(0, 80), lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(), lastMessageSenderId: currentUser.uid, [`unread.${other}`]: firebase.firestore.FieldValue.increment(1) });
+  }catch(e){ toast('Send failed: ' + e.message, 'error'); input.value = text; }
+}
+
+/* ================= LIVE STREAMS ================= */
+function loadLiveStreams(){
+  if(liveStreamsUnsub) liveStreamsUnsub();
+  const list = document.getElementById('liveStreamsList');
+  list.innerHTML = '<div style="padding:40px;text-align:center"><span class="spinner"></span></div>';
+  liveStreamsUnsub = db.collection('liveStreams').where('isActive','==',true).orderBy('startedAt','desc').limit(50).onSnapshot(snap => {
+    if(snap.empty){ list.innerHTML = '<div class="live-empty"><div class="live-empty-icon">📹</div><h3 style="color:#888;margin-bottom:8px;font-weight:800">No one is live right now</h3><p style="font-size:12px">Be the first to go live!</p><button class="go-live-btn" style="margin:20px auto 0" onclick="openGoLiveModal()">📹 Go Live</button></div>'; return; }
+    list.innerHTML = `<div class="live-grid">${snap.docs.map(d => {
+      const s = d.data();
+      const photo = s.hostPhotoURL || '';
+      return `<div class="live-card" onclick="joinLive('${d.id}')">
+        ${photo ? `<img src="${photo}" alt="">` : `<div style="width:100%;height:100%;background:linear-gradient(135deg,#ff2d55,#b400ff);display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:900">${(s.hostName||'U')[0].toUpperCase()}</div>`}
+        <div class="live-card-overlay"></div>
+        <div class="live-card-top">
+          <div class="live-card-badge">LIVE</div>
+          <div class="live-card-viewers">👁️ ${s.viewers || 0}</div>
+        </div>
+        <div class="live-card-bottom">
+          <div class="live-card-host">${avatarHtml(photo, s.hostName)}<span class="live-card-host-name">${escapeHtml(s.hostName || 'Host')}</span></div>
+          <div class="live-card-title">${escapeHtml(s.title || 'Live stream')}</div>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+  }, err => {
+    console.warn(err);
+    if(err.code === 'failed-precondition'){ list.innerHTML = '<div class="empty-state"><p>Firestore index needed. Check console for link.</p></div>'; }
+    else list.innerHTML = `<div class="empty-state"><p>${escapeHtml(err.message)}</p></div>`;
+  });
+}
+
+function openGoLiveModal(){
+  if(!currentUser){ openAuth(); return; }
+  if(!navigator.onLine) return toast('Offline', 'error');
+  document.getElementById('goLiveCoins').innerText = myCoins;
+  document.getElementById('goLiveTitle').value = '';
+  openModal('goLiveModal');
+  setTimeout(()=>document.getElementById('goLiveTitle').focus(), 100);
+}
+
+async function startLive(){
+  if(!currentUser) return;
+  const title = document.getElementById('goLiveTitle').value.trim() || 'Live stream';
+  const btn = document.getElementById('startLiveBtn');
+  btn.disabled = true; btn.innerText = 'Starting...';
+  try{
+    let stream = null;
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: true });
+    }catch(e){
+      console.warn('Camera denied:', e.message);
+      toast('Camera/mic denied — going live without video', 'info', 4000);
+    }
+    myMediaStream = stream;
+    const docRef = await db.collection('liveStreams').add({
+      hostId: currentUser.uid,
+      hostName: currentUser.displayName || currentUser.email.split('@')[0],
+      hostPhotoURL: currentUser.photoURL || '',
+      title,
+      isActive: true,
+      startedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      endedAt: null,
+      viewers: 0,
+      peakViewers: 0,
+      totalGiftCoins: 0,
+      topGifters: []
+    });
+    closeModal('goLiveModal');
+    await joinLive(docRef.id, true);
+  }catch(e){
+    toast('Could not start: ' + e.message, 'error');
+  }finally{
+    btn.disabled = false; btn.innerText = '🔴 Start Live';
+  }
+}
+
+async function joinLive(streamId, asBroadcaster){
+  if(!currentUser){ openAuth(); return; }
+  if(!navigator.onLine) return toast('Offline', 'error');
+  currentStreamId = streamId;
+  isBroadcaster = !!asBroadcaster;
+  document.getElementById('liveScreen').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  const videoArea = document.getElementById('liveVideoArea');
+  const controls = document.getElementById('liveHostControls');
+  if(isBroadcaster){
+    controls.style.display = 'block';
+    if(myMediaStream){
+      videoArea.innerHTML = `<video id="localPreview" autoplay muted playsinline></video>`;
+      const v = document.getElementById('localPreview');
+      v.srcObject = myMediaStream;
+    } else {
+      videoArea.innerHTML = `<div class="live-placeholder"><div class="live-placeholder-avatar" style="background:linear-gradient(135deg,#ff2d55,#b400ff)">${(currentUser.displayName||'U')[0].toUpperCase()}</div><div class="live-placeholder-name">You are LIVE 🔴</div><div class="live-placeholder-sub">Your camera is off</div></div>`;
+    }
+  } else {
+    controls.style.display = 'none';
+    db.collection('liveStreams').doc(streamId).update({
+      viewers: firebase.firestore.FieldValue.increment(1),
+      peakViewers: firebase.firestore.FieldValue.increment(1)
+    }).catch(()=>{});
+  }
+  if(currentStreamUnsub) currentStreamUnsub();
+  currentStreamUnsub = db.collection('liveStreams').doc(streamId).onSnapshot(doc => {
+    if(!doc.exists){ leaveLive(); return; }
+    const d = doc.data();
+    currentStreamData = d;
+    if(!d.isActive && !isBroadcaster){ toast('Stream ended', 'info'); leaveLive(); return; }
+    document.getElementById('liveViewerCount').innerText = d.viewers || 0;
+    document.getElementById('liveHostName').innerText = d.hostName || 'Host';
+    const av = document.getElementById('liveHostAvatar');
+    if(d.hostPhotoURL){ av.innerHTML = `<img src="${d.hostPhotoURL}" style="width:100%;height:100%;object-fit:cover">`; av.style.background = 'none'; }
+    else { av.innerText = (d.hostName || 'U')[0].toUpperCase(); av.style.background = 'linear-gradient(135deg,#ff2d55,#b400ff)'; }
+    if(!isBroadcaster){
+      videoArea.innerHTML = `<div class="live-placeholder">
+        <div class="live-placeholder-avatar" style="background:linear-gradient(135deg,#ff2d55,#b400ff);overflow:hidden">
+          ${d.hostPhotoURL ? `<img src="${d.hostPhotoURL}" style="width:100%;height:100%;object-fit:cover">` : (d.hostName||'H')[0].toUpperCase()}
+        </div>
+        <div class="live-placeholder-name">${escapeHtml(d.hostName || 'Host')}</div>
+        <div class="live-placeholder-sub">🔴 LIVE now <span class="dots"><span></span><span></span><span></span></span></div>
+      </div>`;
+    }
+    if(d.topGifters && d.topGifters.length){
+      document.getElementById('liveTopGifters').style.display = 'block';
+      document.getElementById('liveTopGiftersList').innerHTML = d.topGifters.slice(0, 5).map((g, i) => {
+        const rank = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
+        return `<div class="gifter-row">
+          <span class="gifter-rank ${rank}">${i+1}</span>
+          <div class="gifter-avatar">${g.photoURL ? `<img src="${g.photoURL}">` : (g.name||'U')[0].toUpperCase()}</div>
+          <span class="gifter-name">${escapeHtml(g.name || 'User')}</span>
+          <span class="gifter-coins">💎${g.coins || 0}</span>
+        </div>`;
+      }).join('');
+    } else {
+      document.getElementById('liveTopGifters').style.display = 'none';
+    }
+    // 👑 Show crown if a King gift was recently sent
+    if(d.lastKingAt){
+      const sentTime = timestampDate(d.lastKingAt).getTime();
+      const remaining = 60000 - (Date.now() - sentTime);
+      if(remaining > 0) crownHost(remaining);
+    }
+  }, ()=>{});
+  if(liveChatUnsub) liveChatUnsub();
+  const chatEl = document.getElementById('liveChatContainer');
+  chatEl.innerHTML = '';
+  liveChatUnsub = db.collection('liveStreams').doc(streamId).collection('messages').orderBy('timestamp','desc').limit(30).onSnapshot(snap => {
+    const msgs = snap.docs.map(d => d.data()).reverse();
+    chatEl.innerHTML = msgs.map(m => {
+      if(m.type === 'gift'){
+        return `<div class="live-chat-message gift"><span class="cm-user">${escapeHtml(m.username)}</span><span class="cm-text">sent ${m.giftEmoji} ${escapeHtml(m.giftName)} (${m.giftCoins}💎)</span></div>`;
+      }
+      if(m.type === 'join'){
+        return `<div class="live-chat-message join"><span class="cm-text">👋 ${escapeHtml(m.username)} joined</span></div>`;
+      }
+      return `<div class="live-chat-message"><span class="cm-user">${escapeHtml(m.username)}</span><span class="cm-text">${escapeHtml(m.text)}</span></div>`;
+    }).join('');
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }, ()=>{});
+  if(liveGiftsUnsub) liveGiftsUnsub();
+  let firstGiftsSnap = true;
+  liveGiftsUnsub = db.collection('liveStreams').doc(streamId).collection('gifts').orderBy('timestamp','desc').limit(10).onSnapshot(snap => {
+    if(firstGiftsSnap){ firstGiftsSnap = false; return; }
+    snap.docChanges().forEach(change => {
+      if(change.type === 'added'){
+        const g = change.doc.data();
+        const gift = GIFT_CATALOG.find(x => x.id === g.giftId);
+        if(gift){
+          const ageMs = Date.now() - (g.timestamp ? timestampDate(g.timestamp).getTime() : Date.now());
+          if(ageMs < 5000) showGiftAnimation(gift, g.senderName || 'Someone');
+        }
+      }
+    });
+  }, ()=>{});
+  const me = currentUser.displayName || currentUser.email.split('@')[0];
+  db.collection('liveStreams').doc(streamId).collection('messages').add({
+    text: `${me} joined`,
+    type: 'join',
+    username: me,
+    userId: currentUser.uid,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(()=>{});
+}
+
+async function leaveLive(){
+  if(currentStreamUnsub){ currentStreamUnsub(); currentStreamUnsub = null; }
+  if(liveChatUnsub){ liveChatUnsub(); liveChatUnsub = null; }
+  if(liveGiftsUnsub){ liveGiftsUnsub(); liveGiftsUnsub = null; }
+  if(currentStreamId && !isBroadcaster && currentUser){
+    db.collection('liveStreams').doc(currentStreamId).update({ viewers: firebase.firestore.FieldValue.increment(-1) }).catch(()=>{});
+  }
+  if(myMediaStream){ myMediaStream.getTracks().forEach(t => t.stop()); myMediaStream = null; }
+  document.getElementById('liveScreen').classList.remove('show');
+  document.getElementById('liveHostControls').style.display = 'none';
+  document.body.style.overflow = '';
+  currentStreamId = null; isBroadcaster = false; currentStreamData = null;
+}
+
+async function endLive(){
+  if(!isBroadcaster || !currentStreamId) return;
+  if(!confirm('End this live stream?')) return;
+  try{
+    await db.collection('liveStreams').doc(currentStreamId).update({
+      isActive: false,
+      endedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    toast('Stream ended', 'success');
+  }catch(e){ toast(e.message, 'error'); }
+  await leaveLive();
+}
+
+async function sendLiveChat(){
+  if(!currentUser){ openAuth(); return; }
+  if(!currentStreamId) return;
+  if(!navigator.onLine) return toast('Offline', 'error');
+  const input = document.getElementById('liveChatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = '';
+  try{
+    await db.collection('liveStreams').doc(currentStreamId).collection('messages').add({
+      text,
+      type: 'chat',
+      userId: currentUser.uid,
+      username: currentUser.displayName || currentUser.email.split('@')[0],
+      userPhotoURL: currentUser.photoURL || '',
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(e){ toast('Failed: ' + e.message, 'error'); input.value = text; }
+}
+
+function toggleLiveChatVisibility(){
+  const chat = document.getElementById('liveChatContainer');
+  chat.style.display = chat.style.display === 'none' ? 'flex' : 'none';
+}
+
+function openProfileFromLive(){
+  if(currentStreamData && currentStreamData.hostId) openProfile(currentStreamData.hostId);
+}
+
+/* ================= GIFT PICKER ================= */
+function openGiftPicker(){
+  if(!currentUser){ openAuth(); return; }
+  if(!currentStreamId) return;
+  if(isBroadcaster) return toast('You cannot gift yourself', 'info');
+  giftPickerGiftId = null;
+  giftPickerQty = 1;
+  document.querySelectorAll('.gift-qty-btn').forEach(b => b.classList.toggle('active', b.dataset.qty === '1'));
+  document.getElementById('giftPickerBalance').innerText = myCoins;
+  renderGiftGrid();
+  updateGiftTotal();
+  openModal('giftPickerModal');
+}
+function renderGiftGrid(){
+  const grid = document.getElementById('giftGrid');
+  grid.innerHTML = GIFT_CATALOG.map(g => {
+    const affordable = myCoins >= g.coins;
+    const tierClass = g.tier === 'king' ? 'king'
+                    : g.tier === 'legendary' ? 'legendary'
+                    : g.tier === 'diamond' ? 'diamond'
+                    : g.tier === 'gold' ? 'gold'
+                    : '';
+    const selected = giftPickerGiftId === g.id ? 'selected' : '';
+    const locked = affordable ? '' : 'locked';
+    return `<div class="gift-item ${tierClass} ${selected} ${locked}" onclick="selectGift('${g.id}')">
+      <span class="gift-item-emoji">${g.emoji}</span>
+      <div class="gift-item-name">${g.name}</div>
+      <div class="gift-item-coins">💎 ${g.coins.toLocaleString()}</div>
+    </div>`;
+  }).join('');
+}
+function selectGift(gid){
+  const gift = GIFT_CATALOG.find(g => g.id === gid);
+  if(!gift) return;
+  if(myCoins < gift.coins * giftPickerQty) return toast('Not enough coins. Buy more!', 'error', 3000);
+  giftPickerGiftId = gid;
+  renderGiftGrid();
+  updateGiftTotal();
+}
+function setGiftQty(q){
+  giftPickerQty = q;
+  document.querySelectorAll('.gift-qty-btn').forEach(b => b.classList.toggle('active', String(q) === b.dataset.qty));
+  updateGiftTotal();
+}
+function updateGiftTotal(){
+  const gift = giftPickerGiftId ? GIFT_CATALOG.find(g => g.id === giftPickerGiftId) : null;
+  const total = gift ? gift.coins * giftPickerQty : 0;
+  document.getElementById('giftTotalCoins').innerHTML = `Total: <b style="color:#00ff88">${total.toLocaleString()} 💎</b>`;
+  const btn = document.getElementById('giftSendBtn');
+  btn.disabled = !gift || myCoins < total;
+  btn.innerText = !gift ? 'Select a gift' : myCoins < total ? 'Not enough coins' : `Send ${gift.emoji} ×${giftPickerQty}`;
+}
+async function confirmSendGift(){
+  if(!currentUser || !currentStreamId) return;
+  const gift = GIFT_CATALOG.find(g => g.id === giftPickerGiftId);
+  if(!gift) return;
+  const total = gift.coins * giftPickerQty;
+  if(myCoins < total) return toast('Not enough coins', 'error');
+  const btn = document.getElementById('giftSendBtn');
+  btn.disabled = true; btn.innerText = 'Sending...';
+  try{
+    const hostId = currentStreamData.hostId;
+    const streamRef = db.collection('liveStreams').doc(currentStreamId);
+    const senderRef = db.collection('users').doc(currentUser.uid);
+    const hostRef = db.collection('users').doc(hostId);
+    const senderName = currentUser.displayName || currentUser.email.split('@')[0];
+    await db.runTransaction(async tx => {
+      const senderDoc = await tx.get(senderRef);
+      const streamDoc = await tx.get(streamRef);
+      if(!streamDoc.exists) throw new Error('Stream ended');
+      const senderCoins = (senderDoc.data() || {}).coins || 0;
+      if(senderCoins < total) throw new Error('Insufficient coins');
+      tx.update(senderRef, {
+        coins: firebase.firestore.FieldValue.increment(-total),
+        coinsSpent: firebase.firestore.FieldValue.increment(total)
+      });
+      tx.update(hostRef, {
+        coinsEarned: firebase.firestore.FieldValue.increment(total)
+      });
+      const streamData = streamDoc.data();
+      let topGifters = streamData.topGifters || [];
+      const existingIdx = topGifters.findIndex(g => g.uid === currentUser.uid);
+      if(existingIdx >= 0){
+        topGifters[existingIdx].coins = (topGifters[existingIdx].coins || 0) + total;
+      } else {
+        topGifters.push({ uid: currentUser.uid, name: senderName, photoURL: currentUser.photoURL || '', coins: total });
+      }
+      topGifters.sort((a, b) => b.coins - a.coins);
+      topGifters = topGifters.slice(0, 10);
+      const updateObj = {
+        totalGiftCoins: firebase.firestore.FieldValue.increment(total),
+        topGifters
+      };
+      // 👑 Persist King status globally
+      if(gift.tier === 'king'){
+        updateObj.lastKingSender = senderName;
+        updateObj.lastKingAt = firebase.firestore.FieldValue.serverTimestamp();
+      }
+      tx.update(streamRef, updateObj);
+      tx.set(streamRef.collection('gifts').doc(), {
+        senderId: currentUser.uid,
+        senderName,
+        senderPhotoURL: currentUser.photoURL || '',
+        giftId: gift.id,
+        giftEmoji: gift.emoji,
+        giftName: gift.name,
+        coins: total,
+        quantity: giftPickerQty,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      tx.set(streamRef.collection('messages').doc(), {
+        text: `sent ${gift.emoji} ${gift.name} ×${giftPickerQty}`,
+        type: 'gift',
+        userId: currentUser.uid,
+        username: senderName,
+        giftId: gift.id,
+        giftEmoji: gift.emoji,
+        giftName: gift.name,
+        giftCoins: total,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+    closeModal('giftPickerModal');
+    toast(`Sent ${gift.emoji} ${gift.name} ×${giftPickerQty}!`, 'success', 2500);
+  }catch(e){
+    toast('Gift failed: ' + e.message, 'error', 5000);
+    btn.disabled = false; updateGiftTotal();
+  }
+}
+function showGiftAnimation(gift, senderName){
+  if(gift.tier === 'king'){
+    showKingAnimation(gift, senderName);
+    return;
+  }
+  if(gift.tier === 'legendary'){
+    showLegendaryAnimation(gift, senderName);
+    return;
+  }
+  if(gift.coins < 100){
+    const el = document.createElement('div');
+    el.className = 'floating-gift';
+    el.innerHTML = `<span class="fg-emoji">${gift.emoji}</span><div class="fg-info"><span class="fg-sender">${escapeHtml(senderName)}</span><span class="fg-name">${gift.name}</span></div>`;
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(), 3200);
+    return;
+  }
+  const overlay = document.createElement('div');
+  overlay.className = 'gift-animation-overlay';
+  overlay.innerHTML = `<div class="gift-anim-box"><span class="gift-anim-emoji">${gift.emoji}</span><div class="gift-anim-name">${gift.name}</div><div class="gift-anim-sender">from ${escapeHtml(senderName)}</div></div>`;
+  document.body.appendChild(overlay);
+  setTimeout(()=>overlay.remove(), 3200);
+}
+
+function showKingAnimation(gift, senderName){
+  const overlay = document.createElement('div');
+  overlay.className = 'king-overlay';
+  overlay.innerHTML = `
+    <div class="king-crown">${gift.emoji}</div>
+    <div class="king-text">KING HAS ARRIVED</div>
+    <div class="king-subtitle">👑 <b>${escapeHtml(senderName)}</b> crowned the host with a <b>${gift.name}</b> gift</div>
+  `;
+  const colors = ['#ffd700','#ff8800','#ff2d55','#ffffff','#00ff88','#b400ff'];
+  for(let i = 0; i < 40; i++){
+    const fw = document.createElement('div');
+    fw.className = 'king-firework';
+    const angle = (Math.PI * 2 * i) / 40;
+    const dist = 300 + Math.random() * 400;
+    fw.style.left = '50%';
+    fw.style.top = '50%';
+    fw.style.background = colors[i % colors.length];
+    fw.style.color = colors[i % colors.length];
+    fw.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+    fw.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+    fw.style.animationDelay = `${0.3 + Math.random() * 0.8}s`;
+    overlay.appendChild(fw);
+  }
+  document.body.appendChild(overlay);
+  setTimeout(()=>overlay.remove(), 6200);
+  crownHost(60000);
+}
+
+function showLegendaryAnimation(gift, senderName){
+  const overlay = document.createElement('div');
+  overlay.className = 'legendary-overlay';
+  overlay.innerHTML = `
+    <div class="legendary-emoji">${gift.emoji}</div>
+    <div class="legendary-name">${gift.name.toUpperCase()}</div>
+    <div class="legendary-sender">from ${escapeHtml(senderName)}</div>
+  `;
+  document.body.appendChild(overlay);
+  setTimeout(()=>overlay.remove(), 4200);
+}
+
+function crownHost(durationMs){
+  const pill = document.getElementById('liveHostPill');
+  if(!pill) return;
+  pill.classList.add('king-crowned');
+  setTimeout(() => pill.classList.remove('king-crowned'), durationMs);
+}
+
+/* ================= COIN SHOP ================= */
+function openCoinShop(){
+  if(!currentUser){ openAuth(); return; }
+  document.getElementById('coinShopBalance').innerText = myCoins;
+  renderCoinPackages();
+  openModal('coinShopModal');
+}
+function renderCoinPackages(){
+  const list = document.getElementById('coinPackageList');
+  list.innerHTML = COIN_PACKAGES.map((pkg, i) => {
+    const total = pkg.coins + pkg.bonus;
+    const popular = pkg.tag ? 'popular' : '';
+    return `<div class="coin-package ${popular}" onclick="buyCoins(${i})">
+      <div class="coin-pkg-icon">💎</div>
+      <div class="coin-pkg-info">
+        <div class="coin-pkg-coins">${pkg.coins.toLocaleString()} Coins${pkg.tag ? `<span class="coin-pkg-tag">${pkg.tag}</span>` : ''}</div>
+        ${pkg.bonus ? `<div class="coin-pkg-bonus">+${pkg.bonus.toLocaleString()} bonus → ${total.toLocaleString()} total</div>` : ''}
+      </div>
+      <div class="coin-pkg-price">₦${pkg.price.toLocaleString()}</div>
+    </div>`;
+  }).join('');
+}
+function buyCoins(idx){
+  if(!currentUser){ openAuth(); return; }
+  const pkg = COIN_PACKAGES[idx];
+  if(!pkg) return;
+  if(!navigator.onLine) return toast('Offline', 'error');
+  const total = pkg.coins + pkg.bonus;
+  const ref = `COINS_${currentUser.uid}_${Date.now()}`;
+  const handler = PaystackPop.setup({
+    key: PAYSTACK_PUBLIC_KEY,
+    email: currentUser.email,
+    amount: pkg.price * 100,
+    currency: 'NGN',
+    ref,
+    callback: function(res){
+      db.runTransaction(async tx => {
+        const userRef = db.collection('users').doc(currentUser.uid);
+        tx.update(userRef, { coins: firebase.firestore.FieldValue.increment(total) });
+        tx.set(db.collection('coinTransactions').doc(res.reference), {
+          userId: currentUser.uid,
+          email: currentUser.email,
+          coins: total,
+          priceNGN: pkg.price,
+          reference: res.reference,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }).then(() => {
+        toast(`+${total.toLocaleString()} coins added! 🎉`, 'success', 4000);
+        document.getElementById('coinShopBalance').innerText = myCoins;
+      }).catch(err => toast('Payment succeeded but coins not added: ' + err.message, 'error', 8000));
+    },
+    onClose: function(){ toast('Payment cancelled', 'info', 2000); }
+  });
+  handler.openIframe();
+}
+
+/* ================= PAYSTACK PIN ================= */
+function payToPin(postId){
+  if(!currentUser) return openAuth();
+  const handler = PaystackPop.setup({
+    key: PAYSTACK_PUBLIC_KEY, email: currentUser.email, amount: 1000*100, currency: 'NGN',
+    ref: 'PIN_'+postId+'_'+Date.now(),
+    callback: function(res){
+      const until = new Date(); until.setHours(until.getHours()+24);
+      db.collection("posts").doc(postId).update({ pinnedUntil: firebase.firestore.Timestamp.fromDate(until), isPinned: true, pinPaymentRef: res.reference })
+        .then(() => { toast('Paid! Post pinned 24h ✅','success', 4000); db.collection("transactions").add({ postId, userId: currentUser.uid, amount: 1000, ref: res.reference, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); })
+        .catch(err => toast('Pin failed: '+err.message, 'error'));
+    },
+    onClose: function(){}
+  });
+  handler.openIframe();
+}
+
+/* ================= BOOT ================= */
+switchTab('feed');
+
+window.addEventListener('beforeunload', () => {
+  if(currentStreamId && !isBroadcaster && currentUser){
+    db.collection('liveStreams').doc(currentStreamId).update({ viewers: firebase.firestore.FieldValue.increment(-1) }).catch(()=>{});
+  }
+  if(myMediaStream){ myMediaStream.getTracks().forEach(t => t.stop()); }
+});
+</script>
+</body>
+</html>
